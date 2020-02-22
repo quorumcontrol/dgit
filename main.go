@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -14,7 +15,10 @@ func run() error {
 		return fmt.Errorf("Usage: %s <remote-name> <url>", os.Args[0])
 	}
 
-	repo, err := repolib.New(os.Args[1], os.Args[2])
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	repo, err := repolib.New(ctx, os.Args[1], os.Args[2])
 	if err != nil {
 		return err
 	}
@@ -33,30 +37,56 @@ func run() error {
 	}
 
 	for {
+		var err error
+
 		command, err := stdinReader.ReadString('\n')
 		if err != nil {
 			return err
 		}
 		command = strings.TrimSpace(command)
+		commandParts := strings.Split(command, " ")
 
-		fmt.Fprintf(os.Stderr, "command=%s remote=%s url=%s\n", command, repo.RemoteName(), repo.Url())
+		args := strings.TrimSpace(strings.TrimPrefix(command, commandParts[0]))
+		command = commandParts[0]
+
+		fmt.Fprintf(os.Stderr, "command=%s args=%s remote=%s url=%s\n", command, args, repo.RemoteName(), repo.Url())
 
 		switch command {
 		case "capabilities":
-			fmt.Printf(strings.Join(repo.Capabilities(), "\n"))
-			fmt.Printf("\n\n")
+			fmt.Printf(strings.Join(repo.Capabilities(), "\n") + "\n")
 		case "list":
-			fmt.Printf("\n")
-		case "list for-push":
-			fmt.Printf("\n")
+			refHashList, err := repo.List()
+			if err != nil {
+				return err
+			}
+			head := ""
+			for ref, hash := range refHashList {
+				fmt.Printf("%s %s\n", strings.TrimSpace(hash), strings.TrimSpace(ref))
+				head = ref
+			}
+
+			fmt.Printf("@%s HEAD\n", head)
 		case "push":
+			argsSplit := strings.Split(args, ":")
+			src, dst := argsSplit[0], argsSplit[1]
+			err = repo.Push(src, dst)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("ok %s\n", dst)
+		case "": // Final command / cleanup
 			fmt.Printf("\n")
-		case "export":
-			fmt.Printf("\n")
-		case "":
 			break
 		default:
 			return fmt.Errorf("Command not handled")
+		}
+
+		// This ends the current command
+		fmt.Printf("\n")
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "final err: %v \n", err)
+			return err
 		}
 	}
 
@@ -64,6 +94,7 @@ func run() error {
 }
 
 func main() {
+	fmt.Fprintf(os.Stderr, "decentragit loaded\n")
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
