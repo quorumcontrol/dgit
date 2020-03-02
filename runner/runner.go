@@ -53,6 +53,22 @@ func (r *Runner) SetLogLevel() {
 	}
 }
 
+// > Also, what are the advantages and disadvantages of a remote helper
+// > with push/fetch capabilities vs a remote helper with import/export
+// > capabilities?
+
+// It mainly has to do with what it is convenient for your helper to
+// produce.  If the helper would find it more convenient to write native
+// git objects (for example because the remote server speaks a
+// git-specific protocol, as in the case of remote-curl.c) then the
+// "fetch" capability will be more convenient.  If the helper wants to
+// make a batch of new objects then a fast-import stream can be a
+// convenient way to do this and the "import" capability takes care of
+// running fast-import to take care of that.
+//
+// http://git.661346.n2.nabble.com/remote-helper-example-with-push-fetch-capabilities-td7623009.html
+//
+
 func (r *Runner) Run(ctx context.Context, args []string) error {
 	r.SetLogLevel()
 	log.Debugf("running %v", strings.Join(args, " "))
@@ -115,7 +131,7 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			}
 
 			for _, ref := range refs {
-				r.respond("%s %s\n", ref.Name(), ref.Hash())
+				r.respond("%s %s\n", ref.Hash(), ref.Name())
 			}
 
 		// 	r.respond("@%s HEAD\n", head)
@@ -126,10 +142,12 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 				RemoteName: remote.Config().Name,
 				RefSpecs:   []config.RefSpec{refSpec},
 			})
-			if err != nil {
-				panic(err)
-			}
+
 			dst := refSpec.Dst(plumbing.ReferenceName("*"))
+			if err != nil && err != git.NoErrAlreadyUpToDate {
+				r.respond("error %s %s\n", dst, err.Error())
+				break
+			}
 
 			r.respond("ok %s\n", dst)
 		case "": // Final command / cleanup

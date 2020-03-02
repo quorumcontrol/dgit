@@ -24,6 +24,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/packfile"
 	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp"
+	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/capability"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	gitclient "gopkg.in/src-d/go-git.v4/plumbing/transport/client"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
@@ -59,6 +60,7 @@ type Session struct {
 	transport.UploadPackSession
 	transport.ReceivePackSession
 
+	caps   *capability.List
 	ep     *transport.Endpoint
 	auth   transport.AuthMethod
 	client *Client
@@ -153,6 +155,10 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 
 	log.Debugf("ReceivePack for %s", s.ep.String())
 
+	if err := s.checkSupportedCapabilities(req.Capabilities); err != nil {
+		return nil, err
+	}
+
 	chainTree, err := s.ChainTree(ctx)
 	if err != nil {
 		return nil, err
@@ -171,12 +177,18 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 		return nil, err
 	}
 
+	rs := packp.NewReportStatus()
+	rs.UnpackStatus = "ok"
+
+	// TODO: add ChainTree object storer
+	// TODO: make storage ref configurable
 	localStorer := filesystem.NewStorage(osfs.New(path), cache.NewObjectLRUDefault())
 
 	log.Debugf("loading packfile into storage")
 	if err := packfile.UpdateObjectStorage(localStorer, r); err != nil {
 		_ = r.Close()
-		return nil, err
+		rs.UnpackStatus = err.Error()
+		return rs, err
 	}
 
 	transactions := []*transactions.Transaction{}
@@ -189,15 +201,16 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 
 		log.Debugf("processing command %s for %s", cmd.Action(), ref.String())
 
+		// TODO: better handle update vs create
 		if cmd.Action() == packp.Delete {
 			val = nil
 		} else {
-			val = ref.Hash()
+			val = ref.Hash().String()
 		}
 
 		txn, err := chaintree.NewSetDataTransaction(string(ref.Name()), val)
 		if err != nil {
-			return nil, err
+			return rs, err
 		}
 
 		log.Debugf("chaintree transaction: %v", txn)
@@ -211,17 +224,18 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 
 	privateKey, err := s.privateKey(ctx)
 	if err != nil {
-		return nil, err
+		return rs, err
 	}
 
-	_, err = s.client.tupelo.PlayTransactions(ctx, chainTree, privateKey, transactions)
+	log.Debugf("playing transactions %v", transactions)
+	proof, err := s.client.tupelo.PlayTransactions(ctx, chainTree, privateKey, transactions)
 	if err != nil {
-		return nil, err
+		return rs, err
 	}
+	log.Debugf("new chaintree tip %s", string(proof.Tip))
 
-	return &packp.ReportStatus{
-		CommandStatuses: cmdStatuses,
-	}, nil
+	rs.CommandStatuses = cmdStatuses
+	return rs, nil
 
 	// iterator, err := storer.IterEncodedObjects(plumbing.AnyObject)
 	// if err != nil {
@@ -257,8 +271,28 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 	// 	panic(err)
 	// }
 	// spew.Fdump(os.Stderr, readAll)
+}
 
-	return nil, nil
+func (s *Session) setSupportedCapabilities(c *capability.List) error {
+	if err := c.Set(capability.Agent, capability.DefaultAgent); err != nil {
+		return err
+	}
+
+	if err := c.Set(capability.OFSDelta); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Session) checkSupportedCapabilities(cl *capability.List) error {
+	for _, c := range cl.All() {
+		if !s.caps.Supports(c) {
+			return fmt.Errorf("unsupported capability: %s", c)
+		}
+	}
+
+	return nil
 }
 
 func (s *Session) AdvertisedReferences() (*packp.AdvRefs, error) {
@@ -271,9 +305,17 @@ func (s *Session) AdvertisedReferences() (*packp.AdvRefs, error) {
 
 	ar := packp.NewAdvRefs()
 
+	if err := s.setSupportedCapabilities(ar.Capabilities); err != nil {
+		return nil, err
+	}
+
+	s.caps = ar.Capabilities
+
 	var recursiveFetch func(pathSlice []string) error
 
 	recursiveFetch = func(pathSlice []string) error {
+		log.Debugf("fetching references under: %s", pathSlice)
+
 		valUncast, _, err := chainTree.ChainTree.Dag.Resolve(context.Background(), pathSlice)
 
 		if err != nil {
@@ -287,13 +329,14 @@ func (s *Session) AdvertisedReferences() (*packp.AdvRefs, error) {
 			}
 		case string:
 			refName := plumbing.ReferenceName(strings.Join(pathSlice[2:], "/"))
+			log.Debugf("ref name is: %s", refName)
+			log.Debugf("val is: %s", val)
 			ref := plumbing.NewHashReference(refName, plumbing.NewHash(val))
 
 			err = ar.AddReference(ref)
 			if err != nil {
 				return err
 			}
-			log.Debugf("adding reference: %s, hash: %s", ref.Name(), ref.Hash())
 		}
 		return nil
 	}
