@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/decentragit-remote/client"
@@ -37,7 +38,7 @@ func New(local *git.Repository) (*Runner, error) {
 
 func (r *Runner) respond(format string, a ...interface{}) (n int, err error) {
 	log.Debug("responding to git:")
-	log.Debug(format, a)
+	log.Debugf("  "+format, a...)
 	return fmt.Fprintf(r.stdout, format, a...)
 }
 
@@ -89,6 +90,11 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 		return err
 	}
 
+	err = remote.Config().Validate()
+	if err != nil {
+		return fmt.Errorf("Invalid remote config: %v", err)
+	}
+
 	stdinReader := bufio.NewReader(r.stdin)
 
 	tty, err := os.Create("/dev/tty")
@@ -130,35 +136,93 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 				return err
 			}
 
-			for _, ref := range refs {
+			var head string
+
+			for i, ref := range refs {
 				r.respond("%s %s\n", ref.Hash(), ref.Name())
+
+				// TODO: set default branch in repo chaintree which
+				//       would become head here
+				//
+				// if master head exists, use that
+				if ref.Name() == "refs/heads/master" {
+					head = ref.Name().String()
+				}
+
+				// if head is empty, use last as default
+				if head == "" && i == (len(refs)-1) {
+					head = ref.Name().String()
+				}
 			}
 
-		// 	r.respond("@%s HEAD\n", head)
+			r.respond("@%s HEAD\n", head)
 		case "push":
 			refSpec := config.RefSpec(args)
 
-			err := remote.PushContext(ctx, &git.PushOptions{
+			pushErr := remote.PushContext(ctx, &git.PushOptions{
 				RemoteName: remote.Config().Name,
 				RefSpecs:   []config.RefSpec{refSpec},
 			})
 
 			dst := refSpec.Dst(plumbing.ReferenceName("*"))
-			if err != nil && err != git.NoErrAlreadyUpToDate {
-				r.respond("error %s %s\n", dst, err.Error())
+			if pushErr != nil && pushErr != git.NoErrAlreadyUpToDate {
+				r.respond("error %s %s\n", dst, pushErr.Error())
 				break
 			}
 
 			r.respond("ok %s\n", dst)
+		case "fetch":
+			splitArgs := strings.Split(args, " ")
+			if len(splitArgs) != 2 {
+				return fmt.Errorf("incorrect arguments for fetch, received %s, expected 'hash refname'", args)
+			}
+
+			refName := plumbing.ReferenceName(splitArgs[1])
+
+			refSpecs := []config.RefSpec{}
+
+			log.Debugf("remote fetch config %v", remote.Config().Name)
+
+			for _, fetchRefSpec := range remote.Config().Fetch {
+				if !fetchRefSpec.Match(refName) {
+					continue
+				}
+
+				newRefStr := ""
+				if fetchRefSpec.IsForceUpdate() {
+					newRefStr += "+"
+				}
+				newRefStr += refName.String() + ":" + fetchRefSpec.Dst(refName).String()
+
+				newRef := config.RefSpec(newRefStr)
+
+				if err := newRef.Validate(); err != nil {
+					return err
+				}
+
+				log.Debugf("attempting to fetch on %s", newRef.String())
+				refSpecs = append(refSpecs, newRef)
+			}
+
+			fetchErr := remote.FetchContext(ctx, &git.FetchOptions{
+				RemoteName: remote.Config().Name,
+				RefSpecs:   refSpecs,
+			})
+			if fetchErr != nil && fetchErr != git.NoErrAlreadyUpToDate {
+				return fetchErr
+			}
+			log.Debugf("fetch complete")
+
 		case "": // Final command / cleanup
 			r.respond("\n")
 			break
 		default:
-			return fmt.Errorf("Command not handled")
+			return fmt.Errorf("Command '%s' not handled", command)
 		}
 
 		// This ends the current command
 		r.respond("\n")
+		time.Sleep(3 * time.Second)
 
 		if err != nil {
 			return err

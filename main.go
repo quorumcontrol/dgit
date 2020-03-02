@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	fmt.Fprintf(os.Stderr, "decentragit loaded\n")
+	fmt.Fprintf(os.Stderr, "decentragit loaded for %s\n", os.Getenv("GIT_DIR"))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

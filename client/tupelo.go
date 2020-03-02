@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"time"
 
@@ -66,6 +67,10 @@ DestKeyHex = "0x0468924bd1341b5cec1fed888aaf1e3caa94e7d0f13d4f4573b01b296374b9e7
 func NewTupeloClient(ctx context.Context, storagePath string) (*client.Client, *p2p.BitswapPeer, error) {
 	ngConfig, err := types.TomlToConfig(ngToml)
 	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = os.MkdirAll(storagePath, 0755); err != nil {
 		return nil, nil, err
 	}
 

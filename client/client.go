@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ipfs/go-cid"
@@ -25,6 +25,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/format/packfile"
 	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp"
 	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/capability"
+	"gopkg.in/src-d/go-git.v4/plumbing/revlist"
+	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	gitclient "gopkg.in/src-d/go-git.v4/plumbing/transport/client"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
@@ -78,6 +80,18 @@ func (s *Session) privateKey(ctx context.Context) (*ecdsa.PrivateKey, error) {
 		return nil, fmt.Errorf("couldn't unmarshal ECDSA private key: %v", err)
 	}
 	return ecdsaPrivate, nil
+}
+
+func (s *Session) objectStorage() (storer.Storer, error) {
+	path := "/Users/bwestcott/working/quorumcontrol/decentragit-remote/test-storage/"
+
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return nil, err
+	}
+
+	// TODO: add ChainTree object storer
+	// TODO: make storage ref configurable
+	return filesystem.NewStorage(osfs.New(path), cache.NewObjectLRUDefault()), nil
 }
 
 func (s *Session) ChainTree(ctx context.Context) (*consensus.SignedChainTree, error) {
@@ -141,13 +155,63 @@ func (s *Session) ChainTree(ctx context.Context) (*consensus.SignedChainTree, er
 }
 
 func (s *Session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) (*packp.UploadPackResponse, error) {
-	log.Debugf("received UploadPack")
-	fmt.Fprintln(os.Stderr)
-	spew.Fdump(os.Stderr, "UploadPack")
-	spew.Fdump(os.Stderr, "packp.UploadPackRequest")
-	spew.Fdump(os.Stderr, req)
+	log.Debugf("UploadPack for %s", s.ep.String())
 
-	return nil, nil
+	if req.IsEmpty() {
+		return nil, transport.ErrEmptyUploadPackRequest
+	}
+
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
+	if s.caps == nil {
+		s.caps = capability.NewList()
+		if err := s.setSupportedCapabilities(s.caps); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := s.checkSupportedCapabilities(req.Capabilities); err != nil {
+		return nil, err
+	}
+
+	s.caps = req.Capabilities
+
+	if len(req.Shallows) > 0 {
+		return nil, fmt.Errorf("shallow not supported")
+	}
+
+	localStorer, err := s.objectStorage()
+	if err != nil {
+		return nil, err
+	}
+
+	objs, err := s.objectsToUpload(req, localStorer)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, pw := io.Pipe()
+	e := packfile.NewEncoder(pw, localStorer, false)
+	go func() {
+		// TODO: plumb through a pack window.
+		_, err := e.Encode(objs, 10)
+		pw.CloseWithError(err)
+	}()
+
+	return packp.NewUploadPackResponseWithPackfile(req,
+		ioutil.NewContextReadCloser(ctx, pr),
+	), nil
+}
+
+func (s *Session) objectsToUpload(req *packp.UploadPackRequest, storer storer.Storer) ([]plumbing.Hash, error) {
+	haves, err := revlist.Objects(storer, req.Haves, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return revlist.Objects(storer, req.Wants, haves)
 }
 
 func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateRequest) (*packp.ReportStatus, error) {
@@ -171,18 +235,13 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 		return nil, nil
 	}
 
-	path := "/Users/bwestcott/working/quorumcontrol/decentragit-remote/test-git"
-
-	if err = os.MkdirAll(path, 0755); err != nil {
+	localStorer, err := s.objectStorage()
+	if err != nil {
 		return nil, err
 	}
 
 	rs := packp.NewReportStatus()
 	rs.UnpackStatus = "ok"
-
-	// TODO: add ChainTree object storer
-	// TODO: make storage ref configurable
-	localStorer := filesystem.NewStorage(osfs.New(path), cache.NewObjectLRUDefault())
 
 	log.Debugf("loading packfile into storage")
 	if err := packfile.UpdateObjectStorage(localStorer, r); err != nil {
