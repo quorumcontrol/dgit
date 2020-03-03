@@ -35,6 +35,8 @@ func storer() storage.Storer {
 }
 
 func main() {
+	logging.SetAllLoggers(logging.LevelFatal)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
