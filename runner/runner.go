@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/decentragit-remote/client"
@@ -226,7 +225,6 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 
 		// This ends the current command
 		r.respond("\n")
-		time.Sleep(3 * time.Second)
 
 		if err != nil {
 			return err
