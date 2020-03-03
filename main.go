@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/decentragit-remote/runner"
 	"github.com/quorumcontrol/decentragit-remote/storage/readonly"
 	"github.com/quorumcontrol/decentragit-remote/storage/split"
@@ -14,6 +15,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/storage"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
+
+var log = logging.Logger("dgit.main")
 
 func storer() storage.Storer {
 	gitStore := filesystem.NewStorage(osfs.New(os.Getenv("GIT_DIR")), cache.NewObjectLRUDefault())
@@ -32,8 +35,6 @@ func storer() storage.Storer {
 }
 
 func main() {
-	fmt.Fprintf(os.Stderr, "decentragit loaded for %s\n", os.Getenv("GIT_DIR"))
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -46,6 +47,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	log.Infof("decentragit remote helper loaded for %s", os.Getenv("GIT_DIR"))
 
 	if err := r.Run(ctx, os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)

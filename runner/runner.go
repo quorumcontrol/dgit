@@ -28,17 +28,22 @@ type Runner struct {
 }
 
 func New(local *git.Repository) (*Runner, error) {
-	return &Runner{
+	r := &Runner{
 		local:  local,
 		stdin:  os.Stdin,
 		stdout: os.Stdout,
 		stderr: os.Stderr,
-	}, nil
+	}
+	r.SetLogLevel()
+	return r, nil
 }
 
 func (r *Runner) respond(format string, a ...interface{}) (n int, err error) {
-	log.Debug("responding to git:")
-	log.Debugf("  "+format, a...)
+	log.Infof("responding to git:")
+	resp := bufio.NewScanner(strings.NewReader(fmt.Sprintf(format, a...)))
+	for resp.Scan() {
+		log.Infof("  " + resp.Text())
+	}
 	return fmt.Fprintf(r.stdout, format, a...)
 }
 
@@ -71,8 +76,7 @@ func (r *Runner) SetLogLevel() {
 //
 
 func (r *Runner) Run(ctx context.Context, args []string) error {
-	r.SetLogLevel()
-	log.Debugf("running %v", strings.Join(args, " "))
+	log.Infof("running %v", strings.Join(args, " "))
 
 	if len(args) < 3 {
 		return fmt.Errorf("Usage: %s <remote-name> <url>", args[0])
