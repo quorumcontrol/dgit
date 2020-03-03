@@ -15,13 +15,12 @@ import (
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
+	chaintreestore "github.com/quorumcontrol/decentragit-remote/storage/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 	"github.com/quorumcontrol/tupelo-go-sdk/p2p"
-	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/packfile"
 	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp"
 	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/capability"
@@ -29,7 +28,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	gitclient "gopkg.in/src-d/go-git.v4/plumbing/transport/client"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
 
@@ -82,16 +80,12 @@ func (s *Session) privateKey(ctx context.Context) (*ecdsa.PrivateKey, error) {
 	return ecdsaPrivate, nil
 }
 
-func (s *Session) objectStorage() (storer.Storer, error) {
-	path := "/Users/bwestcott/working/quorumcontrol/decentragit-remote/test-storage/"
-
-	if err := os.MkdirAll(path, 0755); err != nil {
+func (s *Session) objectStorage(ctx context.Context, chainTree *consensus.SignedChainTree) (storer.EncodedObjectStorer, error) {
+	treeKey, err := s.privateKey(ctx)
+	if err != nil {
 		return nil, err
 	}
-
-	// TODO: add ChainTree object storer
-	// TODO: make storage ref configurable
-	return filesystem.NewStorage(osfs.New(path), cache.NewObjectLRUDefault()), nil
+	return chaintreestore.NewObjectStorage(ctx, s.client.tupelo, chainTree, treeKey), nil
 }
 
 func (s *Session) ChainTree(ctx context.Context) (*consensus.SignedChainTree, error) {
@@ -182,7 +176,12 @@ func (s *Session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) 
 		return nil, fmt.Errorf("shallow not supported")
 	}
 
-	localStorer, err := s.objectStorage()
+	chainTree, err := s.ChainTree(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	localStorer, err := s.objectStorage(ctx, chainTree)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +204,7 @@ func (s *Session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) 
 	), nil
 }
 
-func (s *Session) objectsToUpload(req *packp.UploadPackRequest, storer storer.Storer) ([]plumbing.Hash, error) {
+func (s *Session) objectsToUpload(req *packp.UploadPackRequest, storer storer.EncodedObjectStorer) ([]plumbing.Hash, error) {
 	haves, err := revlist.Objects(storer, req.Haves, nil)
 	if err != nil {
 		return nil, err
@@ -235,7 +234,7 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 		return nil, nil
 	}
 
-	localStorer, err := s.objectStorage()
+	localStorer, err := s.objectStorage(ctx, chainTree)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +243,15 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 	rs.UnpackStatus = "ok"
 
 	log.Debugf("loading packfile into storage")
-	if err := packfile.UpdateObjectStorage(localStorer, r); err != nil {
+	p, err := packfile.NewParserWithStorage(packfile.NewScanner(r), localStorer)
+	if err != nil {
+		_ = r.Close()
+		rs.UnpackStatus = err.Error()
+		return rs, err
+	}
+
+	_, err = p.Parse()
+	if err != nil {
 		_ = r.Close()
 		rs.UnpackStatus = err.Error()
 		return rs, err
@@ -291,7 +298,13 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 	if err != nil {
 		return rs, err
 	}
-	log.Debugf("new chaintree tip %s", string(proof.Tip))
+
+	tipCid, err := cid.Parse(proof.Tip)
+	if err != nil {
+		return rs, err
+	}
+
+	log.Debugf("new chaintree tip %s", tipCid.String())
 
 	rs.CommandStatuses = cmdStatuses
 	return rs, nil

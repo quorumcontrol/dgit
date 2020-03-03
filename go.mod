@@ -24,6 +24,7 @@ require (
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ds-flatfs v0.4.0
 	github.com/ipfs/go-ipfs-blockstore v0.1.0
+	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v1.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9
