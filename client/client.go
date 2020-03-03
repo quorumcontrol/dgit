@@ -89,7 +89,7 @@ func (s *Session) objectStorage(ctx context.Context, chainTree *consensus.Signed
 }
 
 func (s *Session) ChainTree(ctx context.Context) (*consensus.SignedChainTree, error) {
-	chainTreeKey, err := consensus.PassPhraseKey([]byte(s.ep.Host), []byte(s.ep.Path))
+	chainTreeKey, err := consensus.PassPhraseKey([]byte(s.ep.Host+"/"+s.ep.Path), []byte("decentragit-alpha"))
 	if err != nil {
 		return nil, err
 	}
