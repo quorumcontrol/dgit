@@ -15,11 +15,12 @@ import (
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
+	"github.com/quorumcontrol/chaintree/nodestore"
 	chaintreestore "github.com/quorumcontrol/decentragit-remote/storage/chaintree"
+	"github.com/quorumcontrol/decentragit-remote/tupelo/clientbuilder"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
-	"github.com/quorumcontrol/tupelo-go-sdk/p2p"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/packfile"
 	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp"
@@ -37,9 +38,8 @@ var log = logging.Logger("dgit.client")
 
 type Client struct {
 	transport.Transport
-
-	tupelo  *tupelo.Client
-	bitswap *p2p.BitswapPeer
+	tupelo    *tupelo.Client
+	nodestore nodestore.DagStore
 }
 
 const protocol = "dgit"
@@ -48,7 +48,7 @@ func New(ctx context.Context) (*Client, error) {
 	var err error
 	c := &Client{}
 	dir := path.Join(os.Getenv("GIT_DIR"), protocol)
-	c.tupelo, c.bitswap, err = NewTupeloClient(ctx, dir)
+	c.tupelo, c.nodestore, err = clientbuilder.Build(ctx, dir)
 	return c, err
 }
 
@@ -94,7 +94,7 @@ func (s *Session) ChainTree(ctx context.Context) (*consensus.SignedChainTree, er
 		return nil, err
 	}
 
-	chainTree, err := consensus.NewSignedChainTree(ctx, chainTreeKey.PublicKey, s.client.bitswap)
+	chainTree, err := consensus.NewSignedChainTree(ctx, chainTreeKey.PublicKey, s.client.nodestore)
 	if err != nil {
 		return nil, err
 	}
@@ -310,41 +310,6 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 
 	rs.CommandStatuses = cmdStatuses
 	return rs, nil
-
-	// iterator, err := storer.IterEncodedObjects(plumbing.AnyObject)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// iterator.ForEach(func(obj plumbing.EncodedObject) error {
-	// 	fmt.Fprintln(os.Stderr)
-	// 	fmt.Fprintf(os.Stderr, obj.Hash().String())
-	// 	fmt.Fprintln(os.Stderr)
-	// 	all, _ := obj.Reader()
-	// 	allStr, _ := goioutil.ReadAll(all)
-	// 	fmt.Fprintf(os.Stderr, string(allStr))
-	// 	fmt.Fprintln(os.Stderr)
-	// 	return nil
-	// })
-
-	// err := storer.ForEachObjectHash(func(h plumbing.Hash) error {
-	// 	spew.Fdump(os.Stderr, h)
-	// 	// obj, err := storer.EncodedObject(plumbing.AnyObject, h)
-	// 	// if err != nil {
-	// 	// 	return err
-	// 	// }
-	// 	// // spew.Fdump(os.Stderr, obj)
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// readAll, err := ioutil.ReadAll(req.Packfile)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// spew.Fdump(os.Stderr, readAll)
 }
 
 func (s *Session) setSupportedCapabilities(c *capability.List) error {
