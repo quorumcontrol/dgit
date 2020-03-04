@@ -148,6 +148,7 @@ func (s *Session) ChainTree(ctx context.Context) (*consensus.SignedChainTree, er
 	return chainTree, nil
 }
 
+// UploadPack is sending FROM the ChainTree TO the local repo
 func (s *Session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) (*packp.UploadPackResponse, error) {
 	log.Debugf("UploadPack for %s", s.ep.String())
 
@@ -213,6 +214,7 @@ func (s *Session) objectsToUpload(req *packp.UploadPackRequest, storer storer.En
 	return revlist.Objects(storer, req.Wants, haves)
 }
 
+// ReceivePack is sending FROM the local repo TO the ChainTree
 func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateRequest) (*packp.ReportStatus, error) {
 	var err error
 

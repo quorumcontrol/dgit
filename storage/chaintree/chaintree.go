@@ -10,14 +10,18 @@ import (
 	"strings"
 
 	format "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	"github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	"go.uber.org/zap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/objfile"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
+
+var log = logging.Logger("dgit.storage.chaintree")
 
 type ObjectStorage struct {
 	storer.EncodedObjectStorer
@@ -25,14 +29,17 @@ type ObjectStorage struct {
 	tupelo    *client.Client
 	chainTree *consensus.SignedChainTree
 	treeKey   *ecdsa.PrivateKey
+	log       *zap.SugaredLogger
 }
 
 func NewObjectStorage(ctx context.Context, tupelo *client.Client, chainTree *consensus.SignedChainTree, treeKey *ecdsa.PrivateKey) storer.EncodedObjectStorer {
+	did := chainTree.MustId()
 	return &ObjectStorage{
 		ctx:       ctx,
 		tupelo:    tupelo,
 		chainTree: chainTree,
 		treeKey:   treeKey,
+		log:       log.Named(did[len(did)-6:]),
 	}
 }
 
@@ -41,6 +48,8 @@ func (s *ObjectStorage) NewEncodedObject() plumbing.EncodedObject {
 }
 
 func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	s.log.Debugf("saving %s with type %s", o.Hash().String(), o.Type().String())
+
 	if s.treeKey == nil {
 		return plumbing.ZeroHash, fmt.Errorf("Must specify treeKey during NewObjectStorage init")
 	}
@@ -75,6 +84,9 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 	}
 
 	// TODO: batch these
+	// TODO: save each git object as cid
+	//   currently objects/sha1[0:2]/ is a map with { sha1[2:] => cbor bytes }
+	//   should be objects/sha1[0:2]/ is a map with { sha1[2:] => cid }
 	transaction, err := chaintree.NewSetDataTransaction(objectWritePath(o.Hash()), objectBytes)
 	if err != nil {
 		return plumbing.ZeroHash, err
@@ -104,14 +116,19 @@ func (s *ObjectStorage) EncodedObjectSize(h plumbing.Hash) (size int64, err erro
 }
 
 func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	s.log.Debugf("fetching %s with type %s", h.String(), t.String())
+
 	valUncast, _, err := s.chainTree.ChainTree.Dag.Resolve(s.ctx, objectReadPath(h))
 	if err == format.ErrNotFound {
+		s.log.Debugf("%s not found", h.String())
 		return nil, plumbing.ErrObjectNotFound
 	}
 	if err != nil {
+		s.log.Errorf("chaintree resolve error for %s: %v", h.String(), err)
 		return nil, err
 	}
 	if valUncast == nil {
+		s.log.Debugf("%s not found", h.String())
 		return nil, plumbing.ErrObjectNotFound
 	}
 
@@ -120,12 +137,14 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 	buf := bytes.NewBuffer(valUncast.([]byte))
 	reader, err := objfile.NewReader(buf)
 	if err != nil {
+		s.log.Errorf("new reader error for %s: %v", h.String(), err)
 		return nil, err
 	}
 	defer reader.Close()
 
 	objType, size, err := reader.Header()
 	if err != nil {
+		s.log.Errorf("error decoding header for %s: %v", h.String(), err)
 		return nil, err
 	}
 
@@ -133,10 +152,12 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 	o.SetSize(size)
 
 	if plumbing.AnyObject != t && o.Type() != t {
+		s.log.Debugf("%s not found, mismatched types, expected %s, got %s", h.String(), t.String(), o.Type().String())
 		return nil, plumbing.ErrObjectNotFound
 	}
 
 	if _, err = io.Copy(o, reader); err != nil {
+		s.log.Errorf("error filling object %s: %v", h.String(), err)
 		return nil, err
 	}
 
