@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sort"
 	"strings"
 
 	format "github.com/ipfs/go-ipld-format"
@@ -14,7 +15,7 @@ import (
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
-	"github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 	"go.uber.org/zap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/objfile"
@@ -26,13 +27,13 @@ var log = logging.Logger("dgit.storage.chaintree")
 type ObjectStorage struct {
 	storer.EncodedObjectStorer
 	ctx       context.Context
-	tupelo    *client.Client
+	tupelo    *tupelo.Client
 	chainTree *consensus.SignedChainTree
 	treeKey   *ecdsa.PrivateKey
 	log       *zap.SugaredLogger
 }
 
-func NewObjectStorage(ctx context.Context, tupelo *client.Client, chainTree *consensus.SignedChainTree, treeKey *ecdsa.PrivateKey) storer.EncodedObjectStorer {
+func NewObjectStorage(ctx context.Context, tupelo *tupelo.Client, chainTree *consensus.SignedChainTree, treeKey *ecdsa.PrivateKey) storer.EncodedObjectStorer {
 	did := chainTree.MustId()
 	return &ObjectStorage{
 		ctx:       ctx,
@@ -167,49 +168,104 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 func (s *ObjectStorage) IterEncodedObjects(t plumbing.ObjectType) (storer.EncodedObjectIter, error) {
 	return &EncodedObjectIter{
 		store: s,
+		t:     t,
 	}, nil
 }
 
 type EncodedObjectIter struct {
 	storer.EncodedObjectIter
-	store *ObjectStorage
+	t                    plumbing.ObjectType
+	store                *ObjectStorage
+	shards               []string
+	currentShardIndex    int
+	currentShardKeys     []string
+	currentShardKeyIndex int
+}
+
+func (iter *EncodedObjectIter) getLeafKeysSorted(path []string) ([]string, error) {
+	valUncast, _, err := iter.store.chainTree.ChainTree.Dag.Resolve(context.Background(), path)
+	if err != nil {
+		return nil, err
+	}
+	if valUncast == nil {
+		return nil, io.EOF
+	}
+
+	keys := make([]string, len(valUncast.(map[string]interface{})))
+	i := 0
+	for key := range valUncast.(map[string]interface{}) {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	return keys, nil
+}
+
+func (iter *EncodedObjectIter) getShards() ([]string, error) {
+	return iter.getLeafKeysSorted(objectsBasePath)
+}
+
+func (iter *EncodedObjectIter) getShardKeys(shard string) ([]string, error) {
+	return iter.getLeafKeysSorted(append(objectsBasePath, shard))
 }
 
 // Next returns the next object from the iterator. If the iterator has reached
 // the end it will return io.EOF as an error. If the object is retreieved
 // successfully error will be nil.
 func (iter *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
-	// var recursiveFetch func(pathSlice []string) error
+	if len(iter.shards) == 0 {
+		shards, err := iter.getShards()
+		if err != nil {
+			return nil, err
+		}
+		if len(shards) == 0 {
+			return nil, io.EOF
+		}
+		iter.shards = shards
+		iter.currentShardIndex = 0
+	}
 
-	// recursiveFetch = func(pathSlice []string) error {
-	// 	valUncast, _, err := chainTree.ChainTree.Dag.Resolve(context.Background(), pathSlice)
+	if (iter.currentShardIndex + 1) > len(iter.shards) {
+		return nil, io.EOF
+	}
 
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	currentShard := iter.shards[iter.currentShardIndex]
+	if len(iter.currentShardKeys) == 0 {
+		shardKeys, err := iter.getShardKeys(currentShard)
+		if err != nil {
+			return nil, err
+		}
+		if len(shardKeys) == 0 {
+			return nil, io.EOF
+		}
+		iter.currentShardKeys = shardKeys
+		iter.currentShardKeyIndex = 0
+	}
 
-	// 	switch val := valUncast.(type) {
-	// 	case map[string]interface{}:
-	// 		for key := range val {
-	// 			recursiveFetch(append(pathSlice, key))
-	// 		}
-	// 	case string:
-	// 		refName := plumbing.ReferenceName(strings.Join(pathSlice[2:], "/"))
-	// 		log.Debugf("ref name is: %s", refName)
-	// 		log.Debugf("val is: %s", val)
-	// 		ref := plumbing.NewHashReference(refName, plumbing.NewHash(val))
+	currentObjectHash := plumbing.NewHash(currentShard + iter.currentShardKeys[iter.currentShardKeyIndex])
 
-	// 		err = ar.AddReference(ref)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// 	return nil
-	// }
+	fmt.Printf("Fetching %s of type %s\n", currentObjectHash.String(), iter.t.String())
 
-	// err = recursiveFetch([]string{"tree", "data", "objects"})
+	iter.currentShardKeyIndex++
 
-	return nil, nil
+	// if the last key in the shard, empty out shard keys and increment shard num to trigger fetching next shard
+	if (iter.currentShardKeyIndex + 1) > len(iter.currentShardKeys) {
+		iter.currentShardKeys = []string{}
+		iter.currentShardKeyIndex = 0
+		iter.currentShardIndex++
+	}
+
+	obj, err := iter.store.EncodedObject(plumbing.AnyObject, currentObjectHash)
+	if err != nil {
+		return nil, err
+	}
+
+	// object was not the type being searched for, move to the next object
+	if plumbing.AnyObject != iter.t && obj.Type() != iter.t {
+		return iter.Next()
+	}
+
+	return obj, nil
 }
 
 func (iter *EncodedObjectIter) ForEach(cb func(plumbing.EncodedObject) error) error {
@@ -219,10 +275,12 @@ func (iter *EncodedObjectIter) ForEach(cb func(plumbing.EncodedObject) error) er
 func (iter *EncodedObjectIter) Close() {
 }
 
+var objectsBasePath = []string{"tree", "data", "objects"}
+
 func objectReadPath(h plumbing.Hash) []string {
 	prefix := h.String()[0:2]
 	key := h.String()[2:]
-	return []string{"tree", "data", "objects", prefix, key}
+	return append(objectsBasePath, prefix, key)
 }
 
 func objectWritePath(h plumbing.Hash) string {

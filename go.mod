@@ -31,6 +31,7 @@ require (
 	github.com/quorumcontrol/messages/v2 v2.1.3-0.20200129115245-2bfec5177653
 	github.com/quorumcontrol/tupelo v0.5.12-0.20200228085742-a503ff3ef25f
 	github.com/quorumcontrol/tupelo-go-sdk v0.6.0-beta1.0.20200228230624-c8f942c4e131
+	github.com/stretchr/testify v1.4.0
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.14.0
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
