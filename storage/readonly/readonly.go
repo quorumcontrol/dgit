@@ -17,6 +17,10 @@ type store struct {
 	base storage.Storer
 }
 
+// readonly store is a shortcut to transactional store without
+// the commit hooks, meaning any write changes performed to this store
+// are never persisted and only held in memory throughout the duration
+// of this object
 func NewStorage(base storage.Storer) storage.Storer {
 	return &store{
 		NewObjectStorage(base),
