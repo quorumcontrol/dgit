@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	logging "github.com/ipfs/go-log"
-	"github.com/quorumcontrol/decentragit-remote/client"
+	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -81,7 +81,7 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 		return fmt.Errorf("Usage: %s <remote-name> <url>", args[0])
 	}
 
-	client, err := client.New(ctx)
+	client, err := dgit.NewClient(ctx)
 	if err != nil {
 		return err
 	}

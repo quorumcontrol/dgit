@@ -1,4 +1,4 @@
-package client
+package dgit
 
 import (
 	"context"
@@ -44,7 +44,7 @@ type Client struct {
 
 const protocol = "dgit"
 
-func New(ctx context.Context) (*Client, error) {
+func NewClient(ctx context.Context) (*Client, error) {
 	var err error
 	c := &Client{}
 	dir := path.Join(os.Getenv("GIT_DIR"), protocol)
