@@ -133,6 +133,7 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 				"push",
 				"fetch",
 			}, "\n") + "\n")
+			r.respond("\n")
 		case "list":
 			refs, err := remote.List(&git.ListOptions{})
 			if err != nil {
@@ -159,6 +160,7 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			}
 
 			r.respond("@%s HEAD\n", head)
+			r.respond("\n")
 		case "push":
 			refSpec := config.RefSpec(args)
 
@@ -207,27 +209,20 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 				refSpecs = append(refSpecs, newRef)
 			}
 
-			fetchErr := remote.FetchContext(ctx, &git.FetchOptions{
+			err := remote.FetchContext(ctx, &git.FetchOptions{
 				RemoteName: remote.Config().Name,
 				RefSpecs:   refSpecs,
 			})
-			if fetchErr != nil && fetchErr != git.NoErrAlreadyUpToDate {
-				return fetchErr
+			if err != nil && err != git.NoErrAlreadyUpToDate {
+				return err
 			}
 			log.Debugf("fetch complete")
 
-		case "": // Final command / cleanup
+		case "": // empty line separates commands, return new line to end command
 			r.respond("\n")
 			break
 		default:
 			return fmt.Errorf("Command '%s' not handled", command)
-		}
-
-		// This ends the current command
-		r.respond("\n")
-
-		if err != nil {
-			return err
 		}
 	}
 
