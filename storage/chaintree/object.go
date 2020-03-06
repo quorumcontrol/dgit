@@ -3,7 +3,6 @@ package chaintree
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,8 +13,6 @@ import (
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
-	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 	"go.uber.org/zap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/objfile"
@@ -25,22 +22,17 @@ import (
 var log = logging.Logger("dgit.storage.chaintree")
 
 type ObjectStorage struct {
-	storer.EncodedObjectStorer
-	ctx       context.Context
-	tupelo    *tupelo.Client
-	chainTree *consensus.SignedChainTree
-	treeKey   *ecdsa.PrivateKey
-	log       *zap.SugaredLogger
+	*StorageConfig
+	log *zap.SugaredLogger
 }
 
-func NewObjectStorage(ctx context.Context, tupelo *tupelo.Client, chainTree *consensus.SignedChainTree, treeKey *ecdsa.PrivateKey) storer.EncodedObjectStorer {
-	did := chainTree.MustId()
+var _ storer.EncodedObjectStorer = (*ObjectStorage)(nil)
+
+func NewObjectStorage(config *StorageConfig) storer.EncodedObjectStorer {
+	did := config.ChainTree.MustId()
 	return &ObjectStorage{
-		ctx:       ctx,
-		tupelo:    tupelo,
-		chainTree: chainTree,
-		treeKey:   treeKey,
-		log:       log.Named(did[len(did)-6:]),
+		config,
+		log.Named(did[len(did)-6:]),
 	}
 }
 
@@ -48,10 +40,12 @@ func (s *ObjectStorage) NewEncodedObject() plumbing.EncodedObject {
 	return &plumbing.MemoryObject{}
 }
 
+// TODO: implement PackfileWriter() for batch SetEncodedObject
+
 func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
 	s.log.Debugf("saving %s with type %s", o.Hash().String(), o.Type().String())
 
-	if s.treeKey == nil {
+	if s.PrivateKey == nil {
 		return plumbing.ZeroHash, fmt.Errorf("Must specify treeKey during NewObjectStorage init")
 	}
 
@@ -84,7 +78,7 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 		return plumbing.ZeroHash, err
 	}
 
-	// TODO: batch these
+	// TODO: batch these, see PackfileWriter()
 	// TODO: save each git object as cid
 	//   currently objects/sha1[0:2]/ is a map with { sha1[2:] => cbor bytes }
 	//   should be objects/sha1[0:2]/ is a map with { sha1[2:] => cid }
@@ -93,7 +87,7 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 		return plumbing.ZeroHash, err
 	}
 
-	_, err = s.tupelo.PlayTransactions(s.ctx, s.chainTree, s.treeKey, []*transactions.Transaction{transaction})
+	_, err = s.Tupelo.PlayTransactions(s.Ctx, s.ChainTree, s.PrivateKey, []*transactions.Transaction{transaction})
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -119,7 +113,7 @@ func (s *ObjectStorage) EncodedObjectSize(h plumbing.Hash) (size int64, err erro
 func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
 	s.log.Debugf("fetching %s with type %s", h.String(), t.String())
 
-	valUncast, _, err := s.chainTree.ChainTree.Dag.Resolve(s.ctx, objectReadPath(h))
+	valUncast, _, err := s.ChainTree.ChainTree.Dag.Resolve(s.Ctx, objectReadPath(h))
 	if err == format.ErrNotFound {
 		s.log.Debugf("%s not found", h.String())
 		return nil, plumbing.ErrObjectNotFound
@@ -183,7 +177,7 @@ type EncodedObjectIter struct {
 }
 
 func (iter *EncodedObjectIter) getLeafKeysSorted(path []string) ([]string, error) {
-	valUncast, _, err := iter.store.chainTree.ChainTree.Dag.Resolve(context.Background(), path)
+	valUncast, _, err := iter.store.ChainTree.ChainTree.Dag.Resolve(context.Background(), path)
 	if err != nil {
 		return nil, err
 	}
