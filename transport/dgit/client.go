@@ -8,16 +8,17 @@ import (
 	"os"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ipfs/go-cid"
+	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/chaintree/nodestore"
 	chaintreestore "github.com/quorumcontrol/decentragit-remote/storage/chaintree"
 	"github.com/quorumcontrol/decentragit-remote/tupelo/clientbuilder"
+	"github.com/quorumcontrol/decentragit-remote/tupelo/repotree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
@@ -29,6 +30,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	gitclient "gopkg.in/src-d/go-git.v4/plumbing/transport/client"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
 
@@ -56,6 +58,16 @@ func (c *Client) RegisterAsDefault() {
 	gitclient.InstallProtocol(protocol, c)
 }
 
+// FIXME: this probably shouldn't be here
+func (c *Client) Tupelo() *tupelo.Client {
+	return c.tupelo
+}
+
+// FIXME: this probably shouldn't be here
+func (c *Client) Nodestore() nodestore.DagStore {
+	return c.nodestore
+}
+
 type Session struct {
 	transport.UploadPackSession
 	transport.ReceivePackSession
@@ -64,9 +76,11 @@ type Session struct {
 	ep     *transport.Endpoint
 	auth   transport.AuthMethod
 	client *Client
+	// true for fetch ops, false for push ops
+	asClient bool
 }
 
-func (s *Session) privateKey(ctx context.Context) (*ecdsa.PrivateKey, error) {
+func FIXMETemporaryPrivateKey() (*ecdsa.PrivateKey, error) {
 	// TODO: move to secure storage, using transport.AuthMethod
 	privateKeyBytes, err := hexutil.Decode(userPrivateKey)
 	if err != nil {
@@ -81,74 +95,14 @@ func (s *Session) privateKey(ctx context.Context) (*ecdsa.PrivateKey, error) {
 }
 
 func (s *Session) objectStorage(ctx context.Context, chainTree *consensus.SignedChainTree) (storer.EncodedObjectStorer, error) {
-	treeKey, err := s.privateKey(ctx)
+	treeKey, err := FIXMETemporaryPrivateKey()
 	if err != nil {
 		return nil, err
 	}
 	return chaintreestore.NewObjectStorage(ctx, s.client.tupelo, chainTree, treeKey), nil
 }
 
-func (s *Session) ChainTree(ctx context.Context) (*consensus.SignedChainTree, error) {
-	chainTreeKey, err := consensus.PassPhraseKey([]byte(s.ep.Host+"/"+s.ep.Path), []byte("decentragit-alpha"))
-	if err != nil {
-		return nil, err
-	}
-
-	chainTree, err := consensus.NewSignedChainTree(ctx, chainTreeKey.PublicKey, s.client.nodestore)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Infof("repo chaintree: %s", chainTree.MustId())
-
-	err = s.client.tupelo.WaitForFirstRound(ctx, 10*time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	proof, err := s.client.tupelo.GetTip(ctx, chainTree.MustId())
-	if err == tupelo.ErrNotFound || proof == nil {
-		privateKey, err := s.privateKey(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		// TOOD: User should register name or something probably vs making it magic on first fetch / push
-		setOwnershipTxn, err := chaintree.NewSetOwnershipTransaction([]string{crypto.PubkeyToAddress(privateKey.PublicKey).String()})
-		if err != nil {
-			return nil, err
-		}
-
-		repoTxn, err := chaintree.NewSetDataTransaction("repo", strings.Join([]string{s.ep.Host, s.ep.Path}, "/"))
-		if err != nil {
-			return nil, err
-		}
-
-		transactions := []*transactions.Transaction{setOwnershipTxn, repoTxn}
-
-		_, err = s.client.tupelo.PlayTransactions(ctx, chainTree, chainTreeKey, transactions)
-		if err != nil {
-			return nil, err
-		}
-
-		return chainTree, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	tipCid, err := cid.Parse(proof.Tip)
-	if err != nil {
-		return nil, err
-	}
-
-	chainTree.ChainTree.Dag = chainTree.ChainTree.Dag.WithNewTip(tipCid)
-
-	return chainTree, nil
-}
-
-// UploadPack is sending FROM the ChainTree TO the local repo
+// UploadPack is sending FROM the ChainTree TO the local repo, aka `git fetch / git clone`
 func (s *Session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) (*packp.UploadPackResponse, error) {
 	log.Debugf("UploadPack for %s", s.ep.String())
 
@@ -177,7 +131,10 @@ func (s *Session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) 
 		return nil, fmt.Errorf("shallow not supported")
 	}
 
-	chainTree, err := s.ChainTree(ctx)
+	chainTree, err := repotree.Find(ctx, s.ep.Host+"/"+s.ep.Path, s.client.tupelo)
+	if err == repotree.ErrNotFound {
+		return nil, transport.ErrRepositoryNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -214,17 +171,27 @@ func (s *Session) objectsToUpload(req *packp.UploadPackRequest, storer storer.En
 	return revlist.Objects(storer, req.Wants, haves)
 }
 
-// ReceivePack is sending FROM the local repo TO the ChainTree
+// ReceivePack is sending FROM the local repo TO the ChainTree, aka `git push`
 func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateRequest) (*packp.ReportStatus, error) {
 	var err error
 
 	log.Debugf("ReceivePack for %s", s.ep.String())
 
+	if s.caps == nil {
+		s.caps = capability.NewList()
+		if err := s.setSupportedCapabilities(s.caps); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := s.checkSupportedCapabilities(req.Capabilities); err != nil {
 		return nil, err
 	}
 
-	chainTree, err := s.ChainTree(ctx)
+	chainTree, err := repotree.Find(ctx, s.ep.Host+"/"+s.ep.Path, s.client.tupelo)
+	if err == repotree.ErrNotFound {
+		return nil, transport.ErrRepositoryNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -269,14 +236,50 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 
 		log.Debugf("processing command %s for %s", cmd.Action(), ref.String())
 
-		// TODO: better handle update vs create
-		if cmd.Action() == packp.Delete {
+		refChainTreePath := append([]string{"tree", "data"}, strings.Split(ref.Name().String(), "/")...)
+
+		currentRef, _, err := chainTree.ChainTree.Dag.Resolve(ctx, refChainTreePath)
+
+		if err != nil && err != format.ErrNotFound {
+			log.Errorf("could not resolve current ref for %s: %v", ref.Name().String(), err)
+			continue
+		}
+
+		log.Debugf("current ref for %s is %v", ref.Name().String(), currentRef)
+
+		switch cmd.Action() {
+		case packp.Delete:
+			if currentRef == nil {
+				cmdStatuses = append(cmdStatuses, &packp.CommandStatus{
+					ReferenceName: ref.Name(),
+					Status:        server.ErrUpdateReference.Error(),
+				})
+				continue
+			}
 			val = nil
-		} else {
+		case packp.Create:
+			if currentRef != nil {
+				cmdStatuses = append(cmdStatuses, &packp.CommandStatus{
+					ReferenceName: ref.Name(),
+					Status:        server.ErrUpdateReference.Error(),
+				})
+				continue
+			}
+
+			val = ref.Hash().String()
+		case packp.Update:
+			if currentRef == nil {
+				cmdStatuses = append(cmdStatuses, &packp.CommandStatus{
+					ReferenceName: ref.Name(),
+					Status:        server.ErrUpdateReference.Error(),
+				})
+				continue
+			}
+
 			val = ref.Hash().String()
 		}
 
-		txn, err := chaintree.NewSetDataTransaction(string(ref.Name()), val)
+		txn, err := chaintree.NewSetDataTransaction(ref.Name().String(), val)
 		if err != nil {
 			return rs, err
 		}
@@ -290,7 +293,7 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 		})
 	}
 
-	privateKey, err := s.privateKey(ctx)
+	privateKey, err := FIXMETemporaryPrivateKey()
 	if err != nil {
 		return rs, err
 	}
@@ -309,7 +312,12 @@ func (s *Session) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateReq
 	log.Debugf("new chaintree tip %s", tipCid.String())
 
 	rs.CommandStatuses = cmdStatuses
-	return rs, nil
+
+	if req.Capabilities.Supports(capability.ReportStatus) {
+		return rs, nil
+	} else {
+		return nil, rs.Error()
+	}
 }
 
 func (s *Session) setSupportedCapabilities(c *capability.List) error {
@@ -319,6 +327,16 @@ func (s *Session) setSupportedCapabilities(c *capability.List) error {
 
 	if err := c.Set(capability.OFSDelta); err != nil {
 		return err
+	}
+
+	if !s.asClient {
+		if err := c.Set(capability.ReportStatus); err != nil {
+			return err
+		}
+
+		if err := c.Set(capability.DeleteRefs); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -337,11 +355,6 @@ func (s *Session) checkSupportedCapabilities(cl *capability.List) error {
 func (s *Session) AdvertisedReferences() (*packp.AdvRefs, error) {
 	log.Debugf("AdvertisedReferences for %s", s.ep.String())
 
-	chainTree, err := s.ChainTree(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
 	ar := packp.NewAdvRefs()
 
 	if err := s.setSupportedCapabilities(ar.Capabilities); err != nil {
@@ -349,6 +362,14 @@ func (s *Session) AdvertisedReferences() (*packp.AdvRefs, error) {
 	}
 
 	s.caps = ar.Capabilities
+
+	chainTree, err := repotree.Find(context.Background(), s.ep.Host+"/"+s.ep.Path, s.client.tupelo)
+	if err == repotree.ErrNotFound {
+		return nil, transport.ErrRepositoryNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
 
 	var recursiveFetch func(pathSlice []string) error
 
@@ -385,6 +406,10 @@ func (s *Session) AdvertisedReferences() (*packp.AdvRefs, error) {
 	log.Debugf("references: %v", ar.References)
 	log.Debugf("capabilities: %v", ar.Capabilities.String())
 
+	if s.asClient && len(ar.References) == 0 {
+		return ar, transport.ErrEmptyRemoteRepository
+	}
+
 	return ar, err
 }
 
@@ -396,17 +421,19 @@ func (s *Session) Close() error {
 func (c *Client) NewUploadPackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.UploadPackSession, error) {
 	log.Debugf("NewUploadPackSession started for %s with auth %T", ep.String(), auth)
 	return &Session{
-		ep:     ep,
-		auth:   auth,
-		client: c,
+		ep:       ep,
+		auth:     auth,
+		client:   c,
+		asClient: true,
 	}, nil
 }
 
 func (c *Client) NewReceivePackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.ReceivePackSession, error) {
 	log.Debugf("NewReceivePackSession started for %s with auth %T", ep.String(), auth)
 	return &Session{
-		ep:     ep,
-		auth:   auth,
-		client: c,
+		ep:       ep,
+		auth:     auth,
+		client:   c,
+		asClient: false,
 	}, nil
 }

@@ -8,11 +8,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
+	"github.com/quorumcontrol/decentragit-remote/tupelo/repotree"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 )
 
 var log = logging.Logger("dgit.runner")
@@ -44,6 +47,15 @@ func (r *Runner) respond(format string, a ...interface{}) (n int, err error) {
 		log.Infof("  " + resp.Text())
 	}
 	return fmt.Fprintf(r.stdout, format, a...)
+}
+
+func (r *Runner) userMessage(format string, a ...interface{}) (n int, err error) {
+	log.Infof("responding to user:")
+	resp := bufio.NewScanner(strings.NewReader(fmt.Sprintf(format, a...)))
+	for resp.Scan() {
+		log.Infof("  " + resp.Text())
+	}
+	return fmt.Fprintf(r.stderr, format+"\n", a...)
 }
 
 func (r *Runner) SetLogLevel() {
@@ -136,6 +148,24 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			r.respond("\n")
 		case "list":
 			refs, err := remote.List(&git.ListOptions{})
+
+			if err == transport.ErrRepositoryNotFound && args == "for-push" {
+				r.respond("\n")
+				continue
+			}
+
+			if err == transport.ErrRepositoryNotFound {
+				r.userMessage("repository does not exist at %s", remote.Config().URLs[0])
+				r.userMessage("you can create a decentragit repository by doing a `git push`")
+				r.respond("\n")
+				continue
+			}
+
+			if err == transport.ErrEmptyRemoteRepository {
+				r.respond("\n")
+				continue
+			}
+
 			if err != nil {
 				return err
 			}
@@ -164,14 +194,41 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 		case "push":
 			refSpec := config.RefSpec(args)
 
-			pushErr := remote.PushContext(ctx, &git.PushOptions{
+			endpoint, err := transport.NewEndpoint(remote.Config().URLs[0])
+			if err != nil {
+				return err
+			}
+
+			err = remote.PushContext(ctx, &git.PushOptions{
 				RemoteName: remote.Config().Name,
 				RefSpecs:   []config.RefSpec{refSpec},
 			})
 
+			// // TODO: init repo from user input
+			// // when dgit has webui could do it there too
+			// // should register their user name + repo name
+			if err == transport.ErrRepositoryNotFound {
+				userPrivateKey, err := dgit.FIXMETemporaryPrivateKey()
+				if err != nil {
+					return err
+				}
+				newOwnership := []string{crypto.PubkeyToAddress(userPrivateKey.PublicKey).String()}
+
+				_, err = repotree.Create(ctx, endpoint.Host+"/"+endpoint.Path, client.Tupelo(), client.Nodestore(), newOwnership)
+				if err != nil {
+					return err
+				}
+
+				// Retry push now that repo exists
+				err = remote.PushContext(ctx, &git.PushOptions{
+					RemoteName: remote.Config().Name,
+					RefSpecs:   []config.RefSpec{refSpec},
+				})
+			}
+
 			dst := refSpec.Dst(plumbing.ReferenceName("*"))
-			if pushErr != nil && pushErr != git.NoErrAlreadyUpToDate {
-				r.respond("error %s %s\n", dst, pushErr.Error())
+			if err != nil && err != git.NoErrAlreadyUpToDate {
+				r.respond("error %s %s\n", dst, err.Error())
 				break
 			}
 
