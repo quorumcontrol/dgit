@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
@@ -21,6 +22,8 @@ import (
 var log = logging.Logger("dgit.runner")
 
 var defaultLogLevel = "PANIC"
+
+const FIXMEtempPrivateKey = "0x5643765d2b05b1b8fc6d5419c88aa0a5be8ef410e8ebc9f4e0ce752334ff2f33"
 
 type Runner struct {
 	local  *git.Repository
@@ -68,6 +71,20 @@ func (r *Runner) SetLogLevel() {
 	if err != nil {
 		fmt.Fprintf(r.stderr, "invalid value %s given for DGIT_LOG_LEVEL: %v", logLevelStr, err)
 	}
+}
+
+func (r *Runner) auth() (transport.AuthMethod, error) {
+	privateKeyBytes, err := hexutil.Decode(FIXMEtempPrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding user private key: %v", err)
+	}
+
+	ecdsaPrivate, err := crypto.ToECDSA(privateKeyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't unmarshal ECDSA private key: %v", err)
+	}
+
+	return dgit.NewPrivateKeyAuth(ecdsaPrivate), nil
 }
 
 // > Also, what are the advantages and disadvantages of a remote helper
@@ -123,6 +140,11 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 		return fmt.Errorf("ttyReader is nil")
 	}
 
+	auth, err := r.auth()
+	if err != nil {
+		return fmt.Errorf("error fetching auth: %v", auth)
+	}
+
 	for {
 		var err error
 
@@ -147,7 +169,9 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			}, "\n") + "\n")
 			r.respond("\n")
 		case "list":
-			refs, err := remote.List(&git.ListOptions{})
+			refs, err := remote.List(&git.ListOptions{
+				Auth: auth,
+			})
 
 			if err == transport.ErrRepositoryNotFound && args == "for-push" {
 				r.respond("\n")
@@ -202,19 +226,14 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			err = remote.PushContext(ctx, &git.PushOptions{
 				RemoteName: remote.Config().Name,
 				RefSpecs:   []config.RefSpec{refSpec},
+				Auth:       auth,
 			})
 
 			// // TODO: init repo from user input
 			// // when dgit has webui could do it there too
 			// // should register their user name + repo name
 			if err == transport.ErrRepositoryNotFound {
-				userPrivateKey, err := dgit.FIXMETemporaryPrivateKey()
-				if err != nil {
-					return err
-				}
-				newOwnership := []string{crypto.PubkeyToAddress(userPrivateKey.PublicKey).String()}
-
-				_, err = repotree.Create(ctx, endpoint.Host+"/"+endpoint.Path, client.Tupelo(), client.Nodestore(), newOwnership)
+				_, err = repotree.Create(ctx, endpoint.Host+"/"+endpoint.Path, client.Tupelo(), client.Nodestore(), []string{auth.String()})
 				if err != nil {
 					return err
 				}
@@ -223,6 +242,7 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 				err = remote.PushContext(ctx, &git.PushOptions{
 					RemoteName: remote.Config().Name,
 					RefSpecs:   []config.RefSpec{refSpec},
+					Auth:       auth,
 				})
 			}
 
@@ -269,6 +289,7 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			err := remote.FetchContext(ctx, &git.FetchOptions{
 				RemoteName: remote.Config().Name,
 				RefSpecs:   refSpecs,
+				Auth:       auth,
 			})
 			if err != nil && err != git.NoErrAlreadyUpToDate {
 				return err
