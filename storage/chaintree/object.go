@@ -238,8 +238,6 @@ func (iter *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 
 	currentObjectHash := plumbing.NewHash(currentShard + iter.currentShardKeys[iter.currentShardKeyIndex])
 
-	fmt.Printf("Fetching %s of type %s\n", currentObjectHash.String(), iter.t.String())
-
 	iter.currentShardKeyIndex++
 
 	// if the last key in the shard, empty out shard keys and increment shard num to trigger fetching next shard
