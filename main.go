@@ -45,10 +45,7 @@ func main() {
 		panic(err)
 	}
 
-	r, err := runner.New(local)
-	if err != nil {
-		panic(err)
-	}
+	r := runner.New(local)
 
 	log.Infof("decentragit remote helper loaded for %s", os.Getenv("GIT_DIR"))
 

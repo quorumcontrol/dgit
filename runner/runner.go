@@ -32,7 +32,7 @@ type Runner struct {
 	stderr io.Writer
 }
 
-func New(local *git.Repository) (*Runner, error) {
+func New(local *git.Repository) *Runner {
 	r := &Runner{
 		local:  local,
 		stdin:  os.Stdin,
@@ -40,7 +40,7 @@ func New(local *git.Repository) (*Runner, error) {
 		stderr: os.Stderr,
 	}
 	r.SetLogLevel()
-	return r, nil
+	return r
 }
 
 func (r *Runner) respond(format string, a ...interface{}) (n int, err error) {

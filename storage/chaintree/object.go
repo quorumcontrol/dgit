@@ -185,9 +185,14 @@ func (iter *EncodedObjectIter) getLeafKeysSorted(path []string) ([]string, error
 		return nil, io.EOF
 	}
 
-	keys := make([]string, len(valUncast.(map[string]interface{})))
+	valMap, ok := valUncast.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("path %v is %T, expected map", path, valUncast)
+	}
+
+	keys := make([]string, len(valMap))
 	i := 0
-	for key := range valUncast.(map[string]interface{}) {
+	for key := range valMap {
 		keys[i] = key
 		i++
 	}
@@ -219,7 +224,7 @@ func (iter *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 		iter.currentShardIndex = 0
 	}
 
-	if (iter.currentShardIndex + 1) > len(iter.shards) {
+	if iter.currentShardIndex >= len(iter.shards) {
 		return nil, io.EOF
 	}
 
@@ -241,7 +246,7 @@ func (iter *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 	iter.currentShardKeyIndex++
 
 	// if the last key in the shard, empty out shard keys and increment shard num to trigger fetching next shard
-	if (iter.currentShardKeyIndex + 1) > len(iter.currentShardKeys) {
+	if iter.currentShardKeyIndex >= len(iter.currentShardKeys) {
 		iter.currentShardKeys = []string{}
 		iter.currentShardKeyIndex = 0
 		iter.currentShardIndex++
@@ -252,7 +257,7 @@ func (iter *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 		return nil, err
 	}
 
-	// object was not the type being searched for, move to the next object
+	// if object was not the type being searched for, move to the next object
 	if plumbing.AnyObject != iter.t && obj.Type() != iter.t {
 		return iter.Next()
 	}
