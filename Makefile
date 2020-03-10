@@ -17,4 +17,4 @@ install: $(FIRSTGOPATH)/bin/git-remote-dgit
 clean:
 	rm git-remote-dgit
 
-PHONY: all build install clean
+.PHONY: all build install test clean
