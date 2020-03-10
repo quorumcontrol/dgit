@@ -76,15 +76,11 @@ func TestRunnerIntegration(t *testing.T) {
 
 		line, err = gitOutputReader.ReadString('\n')
 		require.Nil(t, err)
-		require.Equal(t, line, "list\n")
+		require.Equal(t, line, "*push\n")
 
 		line, err = gitOutputReader.ReadString('\n')
 		require.Nil(t, err)
-		require.Equal(t, line, "push\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "fetch\n")
+		require.Equal(t, line, "*fetch\n")
 
 		line, err = gitOutputReader.ReadString('\n')
 		require.Nil(t, err)

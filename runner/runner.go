@@ -162,9 +162,8 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 		switch command {
 		case "capabilities":
 			r.respond(strings.Join([]string{
-				"list",
-				"push",
-				"fetch",
+				"*push",
+				"*fetch",
 			}, "\n") + "\n")
 			r.respond("\n")
 		case "list":
@@ -306,7 +305,9 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 				return err
 			}
 			log.Debugf("fetch complete")
-
+		// Connect can be used for upload / receive pack
+		// case "connect":
+		// 	r.respond("fallback\n")
 		case "": // empty line separates commands, return new line to end command
 			r.respond("\n")
 			break
