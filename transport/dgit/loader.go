@@ -6,12 +6,14 @@ import (
 	"fmt"
 
 	"github.com/quorumcontrol/chaintree/nodestore"
-	"github.com/quorumcontrol/decentragit-remote/storage/chaintree"
-	"github.com/quorumcontrol/decentragit-remote/tupelo/repotree"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
+
+	"github.com/quorumcontrol/decentragit-remote/storage"
+	"github.com/quorumcontrol/decentragit-remote/storage/chaintree"
+	"github.com/quorumcontrol/decentragit-remote/tupelo/repotree"
 )
 
 // Load loads a storer.Storer given a transport.Endpoint.
@@ -57,10 +59,10 @@ func (l *ChainTreeLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
 		return nil, err
 	}
 
-	return chaintree.NewStorage(&chaintree.StorageConfig{
+	return chaintree.NewStorage(&storage.Config{
 		Ctx:        l.ctx,
 		Tupelo:     l.tupelo,
 		ChainTree:  chainTree,
 		PrivateKey: privateKey,
-	}), nil
+	})
 }

@@ -1,4 +1,4 @@
-package chaintree
+package storage
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 )
 
-type StorageConfig struct {
+type Config struct {
 	Ctx        context.Context
 	Tupelo     *tupelo.Client
 	ChainTree  *consensus.SignedChainTree

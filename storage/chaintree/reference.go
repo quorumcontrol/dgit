@@ -9,17 +9,19 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
-	"gopkg.in/src-d/go-git.v4/storage"
+	gitstorage "gopkg.in/src-d/go-git.v4/storage"
+
+	"github.com/quorumcontrol/decentragit-remote/storage"
 )
 
 type ReferenceStorage struct {
-	*StorageConfig
+	*storage.Config
 	log *zap.SugaredLogger
 }
 
 var _ storer.ReferenceStorer = (*ReferenceStorage)(nil)
 
-func NewReferenceStorage(config *StorageConfig) storer.ReferenceStorer {
+func NewReferenceStorage(config *storage.Config) storer.ReferenceStorer {
 	did := config.ChainTree.MustId()
 	return &ReferenceStorage{
 		config,
@@ -59,7 +61,7 @@ func (s *ReferenceStorage) CheckAndSetReference(ref *plumbing.Reference, old *pl
 		}
 
 		if tmp != nil && tmp.Hash() != old.Hash() {
-			return storage.ErrReferenceHasChanged
+			return gitstorage.ErrReferenceHasChanged
 		}
 	}
 

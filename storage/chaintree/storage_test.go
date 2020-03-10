@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/quorumcontrol/decentragit-remote/tupelo/clientbuilder"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	. "gopkg.in/check.v1"
 	"gopkg.in/src-d/go-git.v4/storage/test"
+
+	"github.com/quorumcontrol/decentragit-remote/storage"
+	"github.com/quorumcontrol/decentragit-remote/tupelo/clientbuilder"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -32,13 +34,14 @@ func (s *StorageSuite) SetUpTest(c *C) {
 	chainTree, err := consensus.NewSignedChainTree(ctx, key.PublicKey, store)
 	c.Assert(err, IsNil)
 
-	storage := NewStorage(&StorageConfig{
+	st, err := NewStorage(&storage.Config{
 		Ctx:        ctx,
 		Tupelo:     tupelo,
 		ChainTree:  chainTree,
 		PrivateKey: key,
 	})
+	c.Assert(err, IsNil)
 
-	s.BaseStorageSuite = test.NewBaseStorageSuite(storage)
+	s.BaseStorageSuite = test.NewBaseStorageSuite(st)
 	s.BaseStorageSuite.SetUpTest(c)
 }

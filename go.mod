@@ -3,6 +3,7 @@ module github.com/quorumcontrol/decentragit-remote
 go 1.13
 
 replace (
+	github.com/NebulousLabs/go-skynet => github.com/quorumcontrol/go-skynet v0.0.0-20200310210059-d794340c029a
 	github.com/go-critic/go-critic => github.com/go-critic/go-critic v0.4.0
 	github.com/golangci/errcheck => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
 	github.com/golangci/go-tools => github.com/golangci/go-tools v0.0.0-20190318060251-af6baa5dc196
@@ -14,9 +15,9 @@ replace (
 )
 
 require (
+	github.com/NebulousLabs/go-skynet v0.0.0-20200306163948-8394a3e261ba
 	github.com/ethereum/go-ethereum v1.9.3
 	github.com/ipfs/go-bitswap v0.1.9-0.20191015150653-291b2674f1f1
-	github.com/ipfs/go-cid v0.0.3
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ds-flatfs v0.4.0
 	github.com/ipfs/go-ipfs-blockstore v0.1.0

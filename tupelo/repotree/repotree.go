@@ -15,6 +15,14 @@ var repoSalt = []byte("decentragit-alpha")
 
 var ErrNotFound = tupelo.ErrNotFound
 
+type RepoTreeOptions struct {
+	Name              string
+	ObjectStorageType string
+	Client            *tupelo.Client
+	NodeStore         nodestore.DagStore
+	Ownership         []string
+}
+
 func GenesisKey(repo string) (*ecdsa.PrivateKey, error) {
 	return consensus.PassPhraseKey([]byte(repo), repoSalt)
 }
@@ -41,30 +49,36 @@ func Find(ctx context.Context, repo string, client *tupelo.Client) (*consensus.S
 	return chainTree, err
 }
 
-func Create(ctx context.Context, repo string, client *tupelo.Client, store nodestore.DagStore, ownership []string) (*consensus.SignedChainTree, error) {
-	genesisKey, err := GenesisKey(repo)
+func Create(ctx context.Context, opts *RepoTreeOptions) (*consensus.SignedChainTree, error) {
+	genesisKey, err := GenesisKey(opts.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	chainTree, err := consensus.NewSignedChainTree(ctx, genesisKey.PublicKey, store)
+	chainTree, err := consensus.NewSignedChainTree(ctx, genesisKey.PublicKey, opts.NodeStore)
 	if err != nil {
 		return nil, err
 	}
 
-	setOwnershipTxn, err := chaintree.NewSetOwnershipTransaction(ownership)
+	setOwnershipTxn, err := chaintree.NewSetOwnershipTransaction(opts.Ownership)
 	if err != nil {
 		return nil, err
 	}
 
-	repoTxn, err := chaintree.NewSetDataTransaction("repo", repo)
+	repoTxn, err := chaintree.NewSetDataTransaction("dgit/repo", opts.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	transactions := []*transactions.Transaction{setOwnershipTxn, repoTxn}
+	config := map[string]map[string]string{"objectStorage": {"type": opts.ObjectStorageType}}
+	configTxn, err := chaintree.NewSetDataTransaction("dgit/config", config)
+	if err != nil {
+		return nil, err
+	}
 
-	_, err = client.PlayTransactions(ctx, chainTree, genesisKey, transactions)
+	txns := []*transactions.Transaction{setOwnershipTxn, repoTxn, configTxn}
+
+	_, err = opts.Client.PlayTransactions(ctx, chainTree, genesisKey, txns)
 	if err != nil {
 		return nil, err
 	}

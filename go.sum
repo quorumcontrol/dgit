@@ -757,6 +757,12 @@ github.com/quorumcontrol/chaintree v0.9.4/go.mod h1:XZMtCWpLgWM6UVSRk431n+HIjJcn
 github.com/quorumcontrol/chaintree v1.0.2-0.20200123185821-453f01cdbbb9/go.mod h1:PHUsyPwSBW+m9cuE5isdhJ8ZnSkFRqD6qQo4Oxva2Yw=
 github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9 h1:7Rl0EE1sR8NdjwIw1er+018yDXXHbnvk03pGbEQPXOQ=
 github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9/go.mod h1:PHUsyPwSBW+m9cuE5isdhJ8ZnSkFRqD6qQo4Oxva2Yw=
+github.com/quorumcontrol/go-skynet v0.0.0-20200306163948-8394a3e261ba h1:YdBrEi0tR60P/gv0uKzM8Qa58QgJyoSeT3Zw3lb+oWw=
+github.com/quorumcontrol/go-skynet v0.0.0-20200306163948-8394a3e261ba/go.mod h1:0uHjJYR8J4VnAixlHTaMyonV0F8pZc2qRNUR6gvDHYc=
+github.com/quorumcontrol/go-skynet v0.0.0-20200310193328-a2f97fe761e0 h1:VPOyD41GKW3GVqiMCnQvySMX/rXMgHgWRZcnwo7o2Uc=
+github.com/quorumcontrol/go-skynet v0.0.0-20200310193328-a2f97fe761e0/go.mod h1:0uHjJYR8J4VnAixlHTaMyonV0F8pZc2qRNUR6gvDHYc=
+github.com/quorumcontrol/go-skynet v0.0.0-20200310210059-d794340c029a h1:ir4lQWqpjeVdts+OELHT6Rbyway/QJpJCBHjduQXkKE=
+github.com/quorumcontrol/go-skynet v0.0.0-20200310210059-d794340c029a/go.mod h1:0uHjJYR8J4VnAixlHTaMyonV0F8pZc2qRNUR6gvDHYc=
 github.com/quorumcontrol/messages v1.1.1 h1:e90LvAM7YCZrFnXGM9H3pin+jjGqYPjW+YthBJkZHLc=
 github.com/quorumcontrol/messages v1.1.1/go.mod h1:PubykIzNsMO+CMecd7HDFKjBa4shVrPal8/GxM1+plc=
 github.com/quorumcontrol/messages/v2 v2.1.2/go.mod h1:on7qxEZYufdF6ZIyXFFWonyEmSdCuY+McIk2kLDiGwg=
