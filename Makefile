@@ -14,6 +14,9 @@ $(FIRSTGOPATH)/bin/git-remote-dgit: git-remote-dgit
 
 install: $(FIRSTGOPATH)/bin/git-remote-dgit
 
+test:
+	go test ./...
+
 clean:
 	rm git-remote-dgit
 
