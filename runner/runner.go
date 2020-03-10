@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
-	"github.com/quorumcontrol/decentragit-remote/tupelo/repotree"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -103,29 +103,28 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 // http://git.661346.n2.nabble.com/remote-helper-example-with-push-fetch-capabilities-td7623009.html
 //
 
-func (r *Runner) Run(ctx context.Context, args []string) error {
-	log.Infof("running %v", strings.Join(args, " "))
+func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) error {
+	log.Infof("running git-remote-dgit on remote %s with url %s", remoteName, remoteUrl)
 
-	if len(args) < 3 {
-		return fmt.Errorf("Usage: %s <remote-name> <url>", args[0])
-	}
-
-	client, err := dgit.NewClient(ctx)
-	if err != nil {
-		return err
-	}
-	client.RegisterAsDefault()
-
-	remoteName := args[1]
-	remote, err := r.local.Remote(remoteName)
+	// get the named remote as reported by git, but then
+	// create a new remote with only the url specified
+	// this is for cases when a remote has multiple urls
+	// specified for push / fetch
+	namedRemote, err := r.local.Remote(remoteName)
 	if err != nil {
 		return err
 	}
 
-	err = remote.Config().Validate()
+	err = namedRemote.Config().Validate()
 	if err != nil {
 		return fmt.Errorf("Invalid remote config: %v", err)
 	}
+
+	remote := git.NewRemote(r.local.Storer, &config.RemoteConfig{
+		Name:  namedRemote.Config().Name,
+		Fetch: namedRemote.Config().Fetch,
+		URLs:  []string{remoteUrl},
+	})
 
 	stdinReader := bufio.NewReader(r.stdin)
 
@@ -196,8 +195,9 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 
 			var head string
 
+			listResponse := make([]string, len(refs))
 			for i, ref := range refs {
-				r.respond("%s %s\n", ref.Hash(), ref.Name())
+				listResponse[i] = fmt.Sprintf("%s %s", ref.Hash(), ref.Name())
 
 				// TODO: set default branch in repo chaintree which
 				//       would become head here
@@ -206,14 +206,19 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 				if ref.Name() == "refs/heads/master" {
 					head = ref.Name().String()
 				}
+			}
 
-				// if head is empty, use last as default
-				if head == "" && i == (len(refs)-1) {
-					head = ref.Name().String()
-				}
+			sort.Slice(listResponse, func(i, j int) bool {
+				return strings.Split(listResponse[i], " ")[1] < strings.Split(listResponse[j], " ")[1]
+			})
+
+			// if head is empty, use last as default
+			if head == "" {
+				head = listResponse[len(listResponse)-1]
 			}
 
 			r.respond("@%s HEAD\n", head)
+			r.respond("%s\n", strings.Join(listResponse, "\n"))
 			r.respond("\n")
 		case "push":
 			refSpec := config.RefSpec(args)
@@ -233,16 +238,13 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			// // when dgit has webui could do it there too
 			// // should register their user name + repo name
 			if err == transport.ErrRepositoryNotFound {
-				// TODO: When above TODO is done; allow configuring this w/ CLI args, API options, etc.
-				objStorageType := os.Getenv("DGIT_OBJ_STORAGE")
-				repoTreeOpts := &repotree.RepoTreeOptions{
-					Name:              endpoint.Host+"/"+endpoint.Path,
-					ObjectStorageType: objStorageType,
-					Client:            client.Tupelo(),
-					NodeStore:         client.Nodestore(),
-					Ownership:         []string{auth.String()},
+				err = nil // reset err back to nil
+				client, err := dgit.Default()
+				if err != nil {
+					return err
 				}
-				_, err = repotree.Create(ctx, repoTreeOpts)
+
+				_, err = client.CreateRepoTree(ctx, endpoint, auth)
 				if err != nil {
 					return err
 				}
