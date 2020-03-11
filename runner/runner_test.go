@@ -50,9 +50,9 @@ func TestRunnerIntegration(t *testing.T) {
 
 	gitInputWriter := newBlockingReader()
 	gitOutpuReaderPipe, gitOutputWriter := io.Pipe()
-	gitOutputReader := bufio.NewReader(gitOutpuReaderPipe)
+	gitOutputReader := newTestOutputReader(gitOutpuReaderPipe)
 	userMsgReaderPipe, userMsgWriter := io.Pipe()
-	userMsgReader := bufio.NewReader(userMsgReaderPipe)
+	userMsgReader := newTestOutputReader(userMsgReaderPipe)
 	require.NotNil(t, userMsgReader)
 
 	runner := &Runner{
@@ -68,63 +68,35 @@ func TestRunnerIntegration(t *testing.T) {
 		require.Nil(t, err)
 	}()
 
-	var line string
-
 	t.Run("it can list capabilities", func(t *testing.T) {
 		_, err = gitInputWriter.Write([]byte("capabilities\n"))
 		require.Nil(t, err)
 
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "*push\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "*fetch\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "\n")
+		gitOutputReader.Expect(t, "*push\n")
+		gitOutputReader.Expect(t, "*fetch\n")
+		gitOutputReader.Expect(t, "\n")
 	})
 
 	t.Run("it can push a branch with same source name", func(t *testing.T) {
 		_, err = gitInputWriter.Write([]byte("list for-push\n"))
 		require.Nil(t, err)
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "\n")
+		gitOutputReader.Expect(t, "\n")
 
 		_, err = gitInputWriter.Write([]byte("push refs/heads/master:refs/heads/master\n"))
 		require.Nil(t, err)
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "ok refs/heads/master\n")
+		gitOutputReader.Expect(t, "ok refs/heads/master\n")
 	})
 
 	t.Run("it can push a branch with different source name", func(t *testing.T) {
 		_, err = gitInputWriter.Write([]byte("list for-push\n"))
 		require.Nil(t, err)
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "@refs/heads/master HEAD\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/master\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "\n")
+		gitOutputReader.Expect(t, "@refs/heads/master HEAD\n")
+		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/master\n")
+		gitOutputReader.Expect(t, "\n")
 
 		_, err = gitInputWriter.Write([]byte("push refs/heads/master:refs/heads/feature/test\n"))
 		require.Nil(t, err)
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "ok refs/heads/feature/test\n")
+		gitOutputReader.Expect(t, "ok refs/heads/feature/test\n")
 	})
 
 	t.Run("it can pull a new branch", func(t *testing.T) {
@@ -152,23 +124,25 @@ func TestRunnerIntegration(t *testing.T) {
 		// now check that runner can pull new tree
 		_, err = gitInputWriter.Write([]byte("list\n"))
 		require.Nil(t, err)
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "@refs/heads/master HEAD\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/feature/test\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/master\n")
-
-		line, err = gitOutputReader.ReadString('\n')
-		require.Nil(t, err)
-		require.Equal(t, line, "1980fcf55330d9d94c34abee5ab734afecf96aba refs/heads/second-repo-master\n")
+		gitOutputReader.Expect(t, "@refs/heads/master HEAD\n")
+		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/feature/test\n")
+		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/master\n")
+		gitOutputReader.Expect(t, "1980fcf55330d9d94c34abee5ab734afecf96aba refs/heads/second-repo-master\n")
 	})
+}
+
+type testOutputReader struct {
+	*bufio.Reader
+}
+
+func newTestOutputReader(rd io.Reader) *testOutputReader {
+	return &testOutputReader{bufio.NewReader(rd)}
+}
+
+func (r *testOutputReader) Expect(t *testing.T, value string) {
+	line, err := r.ReadString('\n')
+	require.Nil(t, err)
+	require.Equal(t, line, value)
 }
 
 type blockingReader struct {
