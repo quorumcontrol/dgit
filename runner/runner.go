@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
@@ -26,10 +26,11 @@ var defaultLogLevel = "PANIC"
 const FIXMEtempPrivateKey = "0x5643765d2b05b1b8fc6d5419c88aa0a5be8ef410e8ebc9f4e0ce752334ff2f33"
 
 type Runner struct {
-	local  *git.Repository
-	stdin  io.Reader
-	stdout io.Writer
-	stderr io.Writer
+	local   *git.Repository
+	stdin   io.Reader
+	stdout  io.Writer
+	stderr  io.Writer
+	keyring keyring.Keyring
 }
 
 func New(local *git.Repository) *Runner {
@@ -41,50 +42,6 @@ func New(local *git.Repository) *Runner {
 	}
 	r.SetLogLevel()
 	return r
-}
-
-func (r *Runner) respond(format string, a ...interface{}) (n int, err error) {
-	log.Infof("responding to git:")
-	resp := bufio.NewScanner(strings.NewReader(fmt.Sprintf(format, a...)))
-	for resp.Scan() {
-		log.Infof("  " + resp.Text())
-	}
-	return fmt.Fprintf(r.stdout, format, a...)
-}
-
-func (r *Runner) userMessage(format string, a ...interface{}) (n int, err error) {
-	log.Infof("responding to user:")
-	resp := bufio.NewScanner(strings.NewReader(fmt.Sprintf(format, a...)))
-	for resp.Scan() {
-		log.Infof("  " + resp.Text())
-	}
-	return fmt.Fprintf(r.stderr, format+"\n", a...)
-}
-
-func (r *Runner) SetLogLevel() {
-	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
-	if !ok {
-		logLevelStr = defaultLogLevel
-	}
-
-	err := logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr))
-	if err != nil {
-		fmt.Fprintf(r.stderr, "invalid value %s given for DGIT_LOG_LEVEL: %v", logLevelStr, err)
-	}
-}
-
-func (r *Runner) auth() (transport.AuthMethod, error) {
-	privateKeyBytes, err := hexutil.Decode(FIXMEtempPrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding user private key: %v", err)
-	}
-
-	ecdsaPrivate, err := crypto.ToECDSA(privateKeyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't unmarshal ECDSA private key: %v", err)
-	}
-
-	return dgit.NewPrivateKeyAuth(ecdsaPrivate), nil
 }
 
 // > Also, what are the advantages and disadvantages of a remote helper
@@ -139,11 +96,6 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 		return fmt.Errorf("ttyReader is nil")
 	}
 
-	auth, err := r.auth()
-	if err != nil {
-		return fmt.Errorf("error fetching auth: %v", auth)
-	}
-
 	for {
 		var err error
 
@@ -167,9 +119,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			}, "\n") + "\n")
 			r.respond("\n")
 		case "list":
-			refs, err := remote.List(&git.ListOptions{
-				Auth: auth,
-			})
+			refs, err := remote.List(&git.ListOptions{})
 
 			if err == transport.ErrRepositoryNotFound && args == "for-push" {
 				r.respond("\n")
@@ -177,8 +127,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			}
 
 			if err == transport.ErrRepositoryNotFound {
-				r.userMessage("repository does not exist at %s", remote.Config().URLs[0])
-				r.userMessage("you can create a decentragit repository by doing a `git push`")
+				r.userMessage(MsgRepoNotFound)
 				r.respond("\n")
 				continue
 			}
@@ -226,6 +175,13 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			if err != nil {
 				return err
 			}
+
+			auth, err := r.auth()
+			if err != nil {
+				return err
+			}
+
+			log.Debugf("auth for push: %s %s", auth.Name(), auth.String())
 
 			err = remote.PushContext(ctx, &git.PushOptions{
 				RemoteName: remote.Config().Name,
@@ -299,7 +255,6 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			err := remote.FetchContext(ctx, &git.FetchOptions{
 				RemoteName: remote.Config().Name,
 				RefSpecs:   refSpecs,
-				Auth:       auth,
 			})
 			if err != nil && err != git.NoErrAlreadyUpToDate {
 				return err
@@ -317,4 +272,59 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 	}
 
 	return nil
+}
+
+func (r *Runner) respond(format string, a ...interface{}) (n int, err error) {
+	log.Infof("responding to git:")
+	resp := bufio.NewScanner(strings.NewReader(fmt.Sprintf(format, a...)))
+	for resp.Scan() {
+		log.Infof("  " + resp.Text())
+	}
+	return fmt.Fprintf(r.stdout, format, a...)
+}
+
+func (r *Runner) userMessage(format string, a ...interface{}) (n int, err error) {
+	log.Infof("responding to user:")
+	resp := bufio.NewScanner(strings.NewReader(fmt.Sprintf(format, a...)))
+	for resp.Scan() {
+		log.Infof("  " + resp.Text())
+	}
+	return fmt.Fprintf(r.stderr, format+"\n", a...)
+}
+
+func (r *Runner) SetLogLevel() {
+	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
+	if !ok {
+		logLevelStr = defaultLogLevel
+	}
+
+	err := logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr))
+	if err != nil {
+		fmt.Fprintf(r.stderr, "invalid value %s given for DGIT_LOG_LEVEL: %v", logLevelStr, err)
+	}
+}
+
+func (r *Runner) auth() (transport.AuthMethod, error) {
+	var err error
+
+	if r.keyring == nil {
+		r.keyring, err = NewDefaultKeyring()
+
+		// TODO: if no keyring available, prompt user for dgit password
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	privateKey, isNew, err := GetPrivateKey(r.keyring)
+	if err != nil {
+		return nil, err
+	}
+
+	if isNew {
+		keyringProviderName := KeyringPrettyNames[fmt.Sprintf("%T", r.keyring)]
+		r.userMessage(MsgWelcome, keyringProviderName, crypto.PubkeyToAddress(privateKey.PublicKey).String())
+	}
+
+	return dgit.NewPrivateKeyAuth(privateKey), nil
 }
