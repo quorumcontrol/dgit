@@ -9,6 +9,7 @@ import (
 	"github.com/quorumcontrol/decentragit-remote/runner"
 	"github.com/quorumcontrol/decentragit-remote/storage/readonly"
 	"github.com/quorumcontrol/decentragit-remote/storage/split"
+	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
@@ -49,7 +50,19 @@ func main() {
 
 	log.Infof("decentragit remote helper loaded for %s", os.Getenv("GIT_DIR"))
 
-	if err := r.Run(ctx, os.Args); err != nil {
+	if len(os.Args) < 3 {
+		fmt.Fprintln(os.Stderr, fmt.Sprintf("Usage: %s <remote-name> <url>", os.Args[0]))
+		os.Exit(1)
+	}
+
+	client, err := dgit.NewClient(ctx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, fmt.Sprintf("error starting dgit client: %v", err))
+		os.Exit(1)
+	}
+	client.RegisterAsDefault()
+
+	if err := r.Run(ctx, os.Args[1], os.Args[2]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

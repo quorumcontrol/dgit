@@ -2,6 +2,7 @@ package chaintree
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/quorumcontrol/chaintree/chaintree"
@@ -115,7 +116,15 @@ func (s *ReferenceStorage) references() ([]*plumbing.Reference, error) {
 
 		switch val := valUncast.(type) {
 		case map[string]interface{}:
+			sortedKeys := make([]string, len(val))
+			i := 0
 			for key := range val {
+				sortedKeys[i] = key
+				i++
+			}
+			sort.Strings(sortedKeys)
+
+			for _, key := range sortedKeys {
 				recursiveFetch(append(pathSlice, key))
 			}
 		case string:
