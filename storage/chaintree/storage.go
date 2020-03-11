@@ -38,20 +38,25 @@ func NewStorage(config *storage.Config) (gitstorage.Storer, error) {
 	}
 
 	objectStorageConfigUncast := ctConfig["objectStorage"]
-	var objectStorageConfig map[string]string
-	if objectStorageConfig, ok = objectStorageConfigUncast.(map[string]string); !ok {
-		return nil, fmt.Errorf("could not cast objectStorage config to map[string]string: was %T instead", objectStorageConfigUncast)
+	var objectStorageConfig map[string]interface{}
+	if objectStorageConfig, ok = objectStorageConfigUncast.(map[string]interface{}); !ok {
+		return nil, fmt.Errorf("could not cast objectStorage config to map[string]interface{}: was %T instead", objectStorageConfigUncast)
 	}
 
 	var objStorage storer.EncodedObjectStorer
 
-	switch t := objectStorageConfig["type"]; t {
+	objStorageType, ok := objectStorageConfig["type"].(string)
+	if !ok {
+		return nil, fmt.Errorf("could not cast objectStorage config type to string; was %T instead", objectStorageConfig["type"])
+	}
+
+	switch objStorageType {
 	case "chaintree", "":
 		objStorage = NewObjectStorage(config)
 	case "siaskynet":
 		objStorage = siaskynet.NewObjectStorage(config)
 	default:
-		return nil, fmt.Errorf("unknown object storage type: %s", t)
+		return nil, fmt.Errorf("unknown object storage type: %s", objStorageType)
 	}
 
 	return split.NewStorage(&split.StorageMap{
