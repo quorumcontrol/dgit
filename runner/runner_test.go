@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
 	"github.com/stretchr/testify/require"
@@ -55,11 +56,17 @@ func TestRunnerIntegration(t *testing.T) {
 	userMsgReader := newTestOutputReader(userMsgReaderPipe)
 	require.NotNil(t, userMsgReader)
 
+	kr := keyring.NewArrayKeyring([]keyring.Item{})
+	_, isNew, err := GetPrivateKey(kr)
+	require.Nil(t, err)
+	require.True(t, isNew)
+
 	runner := &Runner{
-		local:  local,
-		stdin:  gitInputWriter,
-		stdout: gitOutputWriter,
-		stderr: userMsgWriter,
+		local:   local,
+		stdin:   gitInputWriter,
+		stdout:  gitOutputWriter,
+		stderr:  userMsgWriter,
+		keyring: kr,
 	}
 	runner.SetLogLevel()
 
