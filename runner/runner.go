@@ -23,8 +23,6 @@ var log = logging.Logger("dgit.runner")
 
 var defaultLogLevel = "PANIC"
 
-const FIXMEtempPrivateKey = "0x5643765d2b05b1b8fc6d5419c88aa0a5be8ef410e8ebc9f4e0ce752334ff2f33"
-
 type Runner struct {
 	local   *git.Repository
 	stdin   io.Reader
