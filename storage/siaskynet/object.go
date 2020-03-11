@@ -1,31 +1,32 @@
-package chaintree
+package siaskynet
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"io/ioutil"
+	"strings"
+
+	format "github.com/ipfs/go-ipld-format"
+	"github.com/quorumcontrol/messages/v2/build/go/transactions"
+	"gopkg.in/src-d/go-git.v4/plumbing/format/objfile"
 
 	"github.com/quorumcontrol/decentragit-remote/storage"
 
-	format "github.com/ipfs/go-ipld-format"
+	"github.com/NebulousLabs/go-skynet"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
-	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"go.uber.org/zap"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/format/objfile"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
-var log = logging.Logger("dgit.storage.chaintree")
+var log = logging.Logger("dgit.storage.siaskynet")
 
 type ObjectStorage struct {
 	*storage.ChaintreeObjectStorage
 	log *zap.SugaredLogger
 }
 
-var _ storage.ChaintreeObjectStorer = (*ObjectStorage)(nil)
+var _ storer.EncodedObjectStorer = (*ObjectStorage)(nil)
 
 func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	did := config.ChainTree.MustId()
@@ -35,14 +36,8 @@ func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	}
 }
 
-// TODO: implement PackfileWriter() for batch SetEncodedObject
-
 func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
 	s.log.Debugf("saving %s with type %s", o.Hash().String(), o.Type().String())
-
-	if s.PrivateKey == nil {
-		return plumbing.ZeroHash, fmt.Errorf("Must specify treeKey during NewObjectStorage init")
-	}
 
 	if o.Type() == plumbing.OFSDeltaObject || o.Type() == plumbing.REFDeltaObject {
 		return plumbing.ZeroHash, plumbing.ErrInvalidType
@@ -57,9 +52,8 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
-	defer reader.Close()
 
-	if err := writer.WriteHeader(o.Type(), o.Size()); err != nil {
+	if err = writer.WriteHeader(o.Type(), o.Size()); err != nil {
 		return plumbing.ZeroHash, err
 	}
 
@@ -68,27 +62,32 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 	}
 	writer.Close()
 
-	objectBytes, err := ioutil.ReadAll(buf)
+	uploadData := make(skynet.UploadData)
+	uploadData[o.Hash().String()] = buf
+
+	s.log.Debugf("uploading %s to Skynet", o.Hash().String())
+	link, err := skynet.Upload(uploadData, skynet.DefaultUploadOptions.UploadOptions)
+
+	skylink := strings.TrimPrefix(link, "sia://")
+	objDid := strings.Join([]string{"did", "sia", skylink}, ":")
+
+	writePath := storage.ObjectWritePath(o.Hash())
+	s.log.Debugf("saving Skylink %s to repo chaintree at %s", objDid, writePath)
+
+	tx, err := chaintree.NewSetDataTransaction(writePath, objDid)
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
 
-	// TODO: batch these, see PackfileWriter()
-	// TODO: save each git object as cid
-	//   currently objects/sha1[0:2]/ is a map with { sha1[2:] => cbor bytes }
-	//   should be objects/sha1[0:2]/ is a map with { sha1[2:] => cid }
-	transaction, err := chaintree.NewSetDataTransaction(storage.ObjectWritePath(o.Hash()), objectBytes)
-	if err != nil {
-		return plumbing.ZeroHash, err
-	}
-
-	_, err = s.Tupelo.PlayTransactions(s.Ctx, s.ChainTree, s.PrivateKey, []*transactions.Transaction{transaction})
+	_, err = s.Tupelo.PlayTransactions(s.Ctx, s.ChainTree, s.PrivateKey, []*transactions.Transaction{tx})
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
 
 	return o.Hash(), nil
 }
+
+// TODO: DRY these up with chaintree/object.go
 
 func (s *ObjectStorage) HasEncodedObject(h plumbing.Hash) (err error) {
 	if _, err := s.EncodedObject(plumbing.AnyObject, h); err != nil {
@@ -114,7 +113,7 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 		return nil, plumbing.ErrObjectNotFound
 	}
 	if err != nil {
-		s.log.Errorf("chaintree resolve error for %s: %v", h.String(), err)
+		s.log.Errorf("chaintree resolve error for %s: %w", h.String(), err)
 		return nil, err
 	}
 	if valUncast == nil {
@@ -122,12 +121,32 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 		return nil, plumbing.ErrObjectNotFound
 	}
 
+	// TODO: Read these in higher-level code and delegate decoding to whichever
+	//  object storage system is specified in the did:storer: prefix
+	objDid, ok := valUncast.(string)
+	if !ok {
+		s.log.Errorf("object DID should be a string; was a %T instead", valUncast)
+		return nil, plumbing.ErrObjectNotFound
+	}
+	if !strings.HasPrefix(objDid, "did:sia:") {
+		s.log.Errorf("object DID %s should start with did:sia:", objDid)
+		return nil, plumbing.ErrObjectNotFound
+	}
+
+	skylink := strings.TrimPrefix(objDid, "did:sia:")
+
+	s.log.Debugf("downloading %s from Skynet", h.String())
+	data, err := skynet.Download(skylink, skynet.DefaultDownloadOptions)
+	if err != nil {
+		s.log.Errorf("could not download skylink %s from Skynet: %w", skylink, err)
+		return nil, err
+	}
+
 	o := &plumbing.MemoryObject{}
 
-	buf := bytes.NewBuffer(valUncast.([]byte))
-	reader, err := objfile.NewReader(buf)
+	reader, err := objfile.NewReader(data)
 	if err != nil {
-		s.log.Errorf("new reader error for %s: %v", h.String(), err)
+		s.log.Errorf("new reader error for %s: %w", h.String(), err)
 		return nil, err
 	}
 	defer reader.Close()

@@ -233,7 +233,16 @@ func (r *Runner) Run(ctx context.Context, args []string) error {
 			// // when dgit has webui could do it there too
 			// // should register their user name + repo name
 			if err == transport.ErrRepositoryNotFound {
-				_, err = repotree.Create(ctx, endpoint.Host+"/"+endpoint.Path, client.Tupelo(), client.Nodestore(), []string{auth.String()})
+				// TODO: When above TODO is done; allow configuring this w/ CLI args, API options, etc.
+				objStorageType := os.Getenv("DGIT_OBJ_STORAGE")
+				repoTreeOpts := &repotree.RepoTreeOptions{
+					Name:              endpoint.Host+"/"+endpoint.Path,
+					ObjectStorageType: objStorageType,
+					Client:            client.Tupelo(),
+					NodeStore:         client.Nodestore(),
+					Ownership:         []string{auth.String()},
+				}
+				_, err = repotree.Create(ctx, repoTreeOpts)
 				if err != nil {
 					return err
 				}
