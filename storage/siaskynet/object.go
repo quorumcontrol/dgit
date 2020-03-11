@@ -1,6 +1,7 @@
 package siaskynet
 
 import (
+	"bytes"
 	"io"
 	"strings"
 
@@ -42,13 +43,27 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 		return plumbing.ZeroHash, plumbing.ErrInvalidType
 	}
 
+	buf := bytes.NewBuffer(nil)
+
+	writer := objfile.NewWriter(buf)
+	defer writer.Close()
+
 	reader, err := o.Reader()
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
 
+	if err = writer.WriteHeader(o.Type(), o.Size()); err != nil {
+		return plumbing.ZeroHash, err
+	}
+
+	if _, err = io.Copy(writer, reader); err != nil {
+		return plumbing.ZeroHash, err
+	}
+	writer.Close()
+
 	uploadData := make(skynet.UploadData)
-	uploadData[o.Hash().String()] = reader
+	uploadData[o.Hash().String()] = buf
 
 	s.log.Debugf("uploading %s to Skynet", o.Hash().String())
 	link, err := skynet.Upload(uploadData, skynet.DefaultUploadOptions.UploadOptions)
