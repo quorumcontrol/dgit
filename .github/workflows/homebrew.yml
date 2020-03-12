@@ -1,11 +1,11 @@
 name: Homebrew Release & Bottle
 on:
   release:
-    types: [published, preleased] # probably want to remove prerelease later
+    types: [published]
 
 jobs:
   release:
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
       - name: update release in formula
         uses: izumin5210/action-homebrew-tap@v1.0.0
