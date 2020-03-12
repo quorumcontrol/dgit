@@ -8,7 +8,7 @@ jobs:
     runs-on: [macos-latest]
     steps:
       - name: update release in formula
-        uses: izumin5210/action-homebrew-tap@v1
+        uses: izumin5210/action-homebrew-tap@v1.0.0
         with:
           tap: quorumcontrol/homebrew-dgit
           token: ${{ secrets.GITHUB_TOKEN }}
