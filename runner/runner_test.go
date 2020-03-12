@@ -10,7 +10,7 @@ import (
 
 	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
+	"github.com/quorumcontrol/dgit/transport/dgit"
 	"github.com/stretchr/testify/require"
 	fixtures "gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/go-git.v4"

@@ -11,9 +11,9 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
 
-	"github.com/quorumcontrol/decentragit-remote/storage"
-	"github.com/quorumcontrol/decentragit-remote/storage/chaintree"
-	"github.com/quorumcontrol/decentragit-remote/tupelo/repotree"
+	"github.com/quorumcontrol/dgit/storage"
+	"github.com/quorumcontrol/dgit/storage/chaintree"
+	"github.com/quorumcontrol/dgit/tupelo/repotree"
 )
 
 // Load loads a storer.Storer given a transport.Endpoint.

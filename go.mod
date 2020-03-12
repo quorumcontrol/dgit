@@ -1,4 +1,4 @@
-module github.com/quorumcontrol/decentragit-remote
+module github.com/quorumcontrol/dgit
 
 go 1.13
 

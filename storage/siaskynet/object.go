@@ -9,7 +9,7 @@ import (
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/objfile"
 
-	"github.com/quorumcontrol/decentragit-remote/storage"
+	"github.com/quorumcontrol/dgit/storage"
 
 	"github.com/NebulousLabs/go-skynet"
 	logging "github.com/ipfs/go-log"
