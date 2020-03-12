@@ -1,5 +1,8 @@
 name: Homebrew Bottle
-on: [release]
+# eventually this should run on release only
+#on: [release]
+# but every push is useful for testing
+on: [push, release]
 
 jobs:
   bottle:
