@@ -19,7 +19,7 @@ jobs:
           perl -p -i -e 's#^(\s*)url\s+.+$#$1url "${{ github.event.release.tarball_url }}"#' dgit.rb
           # update sha256
           export SHASUM=$(curl -L ${{ github.event.release.tarball_url }} | sha256sum | awk '{print $1}')
-          perl -p -i -e 's#^(\s*)sha256\s+.+$#$1sha256 "$SHASUM"#' dgit.rb
+          perl -p -i -e 's#^(\s*)sha256\s+.+$#$1sha256 "$ENV{'SHASUM'}"#' dgit.rb
           # remove outdated bottle info
           perl -p -i -0 -e 's#^\s*bottle\s+do.*?end$^\s*$##ms' dgit.rb
           # commit
