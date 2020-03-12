@@ -1,20 +1,24 @@
-package remotehelper
+package keyring
 
 import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/99designs/keyring"
+	keyringlib "github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var secureKeyringBackends = []keyring.BackendType{
-	keyring.WinCredBackend,
-	keyring.KeychainBackend,
-	keyring.SecretServiceBackend,
-	keyring.KWalletBackend,
-	keyring.PassBackend,
+type Keyring interface {
+	keyringlib.Keyring
+}
+
+var secureKeyringBackends = []keyringlib.BackendType{
+	keyringlib.WinCredBackend,
+	keyringlib.KeychainBackend,
+	keyringlib.SecretServiceBackend,
+	keyringlib.KWalletBackend,
+	keyringlib.PassBackend,
 }
 
 var KeyringPrettyNames = map[string]string{
@@ -25,8 +29,8 @@ var KeyringPrettyNames = map[string]string{
 	"*keyring.passKeyring":    "pass",
 }
 
-func NewDefaultKeyring() (keyring.Keyring, error) {
-	return keyring.Open(keyring.Config{
+func NewDefault() (Keyring, error) {
+	return keyringlib.Open(keyringlib.Config{
 		ServiceName:                    "dgit",
 		KeychainTrustApplication:       true,
 		KeychainAccessibleWhenUnlocked: true,
@@ -34,12 +38,25 @@ func NewDefaultKeyring() (keyring.Keyring, error) {
 	})
 }
 
-func GetPrivateKey(kr keyring.Keyring) (key *ecdsa.PrivateKey, isNew bool, err error) {
+func NewMemory() Keyring {
+	return keyringlib.NewArrayKeyring([]keyringlib.Item{})
+}
+
+func Name(kr Keyring) string {
+	typeName := fmt.Sprintf("%T", kr)
+	name, ok := KeyringPrettyNames[typeName]
+	if !ok {
+		return typeName
+	}
+	return name
+}
+
+func GetPrivateKey(kr Keyring) (key *ecdsa.PrivateKey, isNew bool, err error) {
 	// TODO: scope keyring by usernames
 	keyName := "default"
 
 	privateKeyItem, err := kr.Get(keyName)
-	if err == keyring.ErrKeyNotFound {
+	if err == keyringlib.ErrKeyNotFound {
 		isNew = true
 
 		privateKey, err := crypto.GenerateKey()
@@ -47,7 +64,7 @@ func GetPrivateKey(kr keyring.Keyring) (key *ecdsa.PrivateKey, isNew bool, err e
 			return nil, isNew, err
 		}
 
-		privateKeyItem = keyring.Item{
+		privateKeyItem = keyringlib.Item{
 			Key:   keyName,
 			Label: "dgit." + keyName,
 			Data:  []byte(hexutil.Encode(crypto.FromECDSA(privateKey))),

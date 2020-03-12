@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 	"github.com/stretchr/testify/require"
 	fixtures "gopkg.in/src-d/go-git-fixtures.v3"
@@ -56,8 +56,8 @@ func TestRunnerIntegration(t *testing.T) {
 	userMsgReader := newTestOutputReader(userMsgReaderPipe)
 	require.NotNil(t, userMsgReader)
 
-	kr := keyring.NewArrayKeyring([]keyring.Item{})
-	_, isNew, err := GetPrivateKey(kr)
+	kr := keyring.NewMemory()
+	_, isNew, err := keyring.GetPrivateKey(kr)
 	require.Nil(t, err)
 	require.True(t, isNew)
 

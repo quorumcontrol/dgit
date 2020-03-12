@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
+	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/msg"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 	"gopkg.in/src-d/go-git.v4"
@@ -280,7 +280,7 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 	var err error
 
 	if r.keyring == nil {
-		r.keyring, err = NewDefaultKeyring()
+		r.keyring, err = keyring.NewDefault()
 
 		// TODO: if no keyring available, prompt user for dgit password
 		if err != nil {
@@ -288,13 +288,13 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		}
 	}
 
-	privateKey, isNew, err := GetPrivateKey(r.keyring)
+	privateKey, isNew, err := keyring.GetPrivateKey(r.keyring)
 	if err != nil {
 		return nil, err
 	}
 
 	if isNew {
-		keyringProviderName := KeyringPrettyNames[fmt.Sprintf("%T", r.keyring)]
+		keyringProviderName := keyring.Name(r.keyring)
 		r.userMessage(msg.Welcome, keyringProviderName, crypto.PubkeyToAddress(privateKey.PublicKey).String())
 	}
 
