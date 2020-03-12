@@ -1,7 +1,7 @@
 name: Homebrew Release & Bottle
 on:
   release:
-    types: [published]
+    types: [published, preleased] # probably want to remove prerelease later
 
 jobs:
   release:
