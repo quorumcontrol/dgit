@@ -11,7 +11,7 @@ Then proceed with normal git commands
 
 ### Building
 - Clone this repo.
-- Run `make`. Generates `./git-remote-dgit` in top level dir.
+- Run `make`. Generates `./dgit` in top level dir.
 
 ### Installation
-- Run `make install`. Copies `git-remote-dgit` to your $GOPATH/bin dir, so add that to your path if necessary.
+- Run `make install`. Copies `dgit` and `git-remote-dgit` to your $GOPATH/bin dir, so add that to your path if necessary.
