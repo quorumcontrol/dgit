@@ -4,20 +4,23 @@ FIRSTGOPATH = $(firstword $(subst :, ,$(GOPATH)))
 
 all: build
 
-git-remote-dgit: go.mod go.sum $(gosources)
-	go build -o git-remote-dgit
+dgit: go.mod go.sum $(gosources)
+	go build -o dgit
 
-build: git-remote-dgit
+build: dgit
 
-$(FIRSTGOPATH)/bin/git-remote-dgit: git-remote-dgit
+$(FIRSTGOPATH)/bin/dgit: dgit
+	cp dgit $(FIRSTGOPATH)/bin/
+
+$(FIRSTGOPATH)/bin/git-remote-dgit:
 	cp git-remote-dgit $(FIRSTGOPATH)/bin/
 
-install: $(FIRSTGOPATH)/bin/git-remote-dgit
+install: $(FIRSTGOPATH)/bin/dgit $(FIRSTGOPATH)/bin/git-remote-dgit
 
 test:
 	go test ./...
 
 clean:
-	rm git-remote-dgit
+	rm dgit
 
 .PHONY: all build install test clean

@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/quorumcontrol/decentragit-remote/storage"
+	"github.com/quorumcontrol/dgit/storage"
 
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"

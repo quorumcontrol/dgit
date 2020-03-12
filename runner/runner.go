@@ -12,7 +12,7 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
-	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
+	"github.com/quorumcontrol/dgit/transport/dgit"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -42,6 +42,29 @@ func New(local *git.Repository) *Runner {
 	return r
 }
 
+func (r *Runner) Run(ctx context.Context, args ...string) error {
+	subcommand := args[0]
+
+	switch subcommand {
+	case "remote-helper":
+		var (
+			remoteName string
+			remoteUrl  string
+		)
+		if len(args) > 1 {
+			remoteName = args[1]
+		}
+		if len(args) > 2 {
+			remoteUrl = args[2]
+		}
+		return r.runRemoteHelper(ctx, remoteName, remoteUrl)
+	case "":
+		return fmt.Errorf("missing subcommand")
+	default:
+		return fmt.Errorf("unknown subcommand: %s", subcommand)
+	}
+}
+
 // > Also, what are the advantages and disadvantages of a remote helper
 // > with push/fetch capabilities vs a remote helper with import/export
 // > capabilities?
@@ -58,7 +81,7 @@ func New(local *git.Repository) *Runner {
 // http://git.661346.n2.nabble.com/remote-helper-example-with-push-fetch-capabilities-td7623009.html
 //
 
-func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) error {
+func (r *Runner) runRemoteHelper(ctx context.Context, remoteName string, remoteUrl string) error {
 	log.Infof("running git-remote-dgit on remote %s with url %s", remoteName, remoteUrl)
 
 	// get the named remote as reported by git, but then
