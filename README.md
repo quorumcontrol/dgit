@@ -1,11 +1,11 @@
-## Decentragit helper
+## dgit remote helper
 Implements a [git remote helper](https://git-scm.com/docs/git-remote-helpers) that stores repo information in a ChainTree.
 
 ### Usage
 Protocol is registered as `dgit`, so origin should look like:
-`git remote add origin dgit://quorumcontrol/tupelo`
+`git remote add origin dgit://quorumcontrol/dgit`
 
-Replacing `quorumcontrol/tupelo` with any repo name
+Replacing `quorumcontrol/dgit` with any repo name
 
 Then proceed with normal git commands
 
