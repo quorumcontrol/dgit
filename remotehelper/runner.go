@@ -12,6 +12,7 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
+	"github.com/quorumcontrol/dgit/msg"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -110,7 +111,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			}
 
 			if err == transport.ErrRepositoryNotFound {
-				r.userMessage(MsgRepoNotFound)
+				r.userMessage(msg.RepoNotFound)
 				r.respond("\n")
 				continue
 			}
@@ -294,7 +295,7 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 
 	if isNew {
 		keyringProviderName := KeyringPrettyNames[fmt.Sprintf("%T", r.keyring)]
-		r.userMessage(MsgWelcome, keyringProviderName, crypto.PubkeyToAddress(privateKey.PublicKey).String())
+		r.userMessage(msg.Welcome, keyringProviderName, crypto.PubkeyToAddress(privateKey.PublicKey).String())
 	}
 
 	return dgit.NewPrivateKeyAuth(privateKey), nil

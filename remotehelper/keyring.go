@@ -17,6 +17,14 @@ var secureKeyringBackends = []keyring.BackendType{
 	keyring.PassBackend,
 }
 
+var KeyringPrettyNames = map[string]string{
+	"*keyring.keychain":       "macOS Keychain Access",
+	"*keyring.kwalletKeyring": "KWallet (KDE Wallet Manager)",
+	"*keyring.windowsKeyring": "Windows Credential Manager",
+	"*keyring.secretsKeyring": "libsecret",
+	"*keyring.passKeyring":    "pass",
+}
+
 func NewDefaultKeyring() (keyring.Keyring, error) {
 	return keyring.Open(keyring.Config{
 		ServiceName:                    "dgit",
