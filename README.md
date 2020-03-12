@@ -1,4 +1,4 @@
-[![MIT License][license-shield]][license-url]
+[![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
 
 <!-- PROJECT LOGO -->
 <br />
@@ -11,7 +11,7 @@
 
   <p align="center">
     <b>dgit</b> is an opensource project built by Quorum Control which combines
-    the power of git, the Tupelo DLT and Skynet from Sia.  <br>
+    the power of <br>git, the Tupelo DLT and Skynet from Sia.  <br>
     <b>dgit</b> uses decentralized ownership and storage to make it trivial to
     create a decentralized mirror of your project.<br>
     <b>dgit</b> accomplishes this without changing your github workflow.<br>
@@ -27,7 +27,6 @@
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
   - [Usage](#usage)
