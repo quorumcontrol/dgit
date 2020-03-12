@@ -21,10 +21,11 @@ func init() {
 }
 
 var remoteHelperCommand = &cobra.Command{
-	Use:   "remote-helper",
-	Short: "A git-remote-helper called by git directly. Not for direct use!",
-	Long:  `Implements a git-remote-helper (https://git-scm.com/docs/git-remote-helpers), registering and handling the dgit:// protocol.`,
-	Args:  cobra.ArbitraryArgs,
+	Use:    "remote-helper",
+	Short:  "A git-remote-helper called by git directly. Not for direct use!",
+	Long:   `Implements a git-remote-helper (https://git-scm.com/docs/git-remote-helpers), registering and handling the dgit:// protocol.`,
+	Args:   cobra.ArbitraryArgs,
+	Hidden: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
