@@ -66,7 +66,7 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 	uploadData[o.Hash().String()] = buf
 
 	s.log.Debugf("uploading %s to Skynet", o.Hash().String())
-	link, err := skynet.Upload(uploadData, skynet.DefaultUploadOptions.UploadOptions)
+	link, err := skynet.Upload(uploadData, skynet.DefaultUploadOptions)
 
 	skylink := strings.TrimPrefix(link, "sia://")
 	objDid := strings.Join([]string{"did", "sia", skylink}, ":")
