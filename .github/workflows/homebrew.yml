@@ -5,7 +5,7 @@ on:
 
 jobs:
   release:
-    runs-on: [macos-latest]
+    runs-on: [ubuntu-latest]
     steps:
       - name: update release in formula
         uses: izumin5210/action-homebrew-tap@v1.0.0
