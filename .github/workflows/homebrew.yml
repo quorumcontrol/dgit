@@ -11,6 +11,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: quorumcontrol/homebrew-dgit
+          persist-credentials: false
       - name: update release in formula
         run: |
           cd Formula
@@ -28,7 +29,7 @@ jobs:
       - name: push changes
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.TAP_GITHUB_TOKEN }}
           repository: quorumcontrol/homebrew-dgit
 
   bottle:
