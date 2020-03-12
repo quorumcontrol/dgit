@@ -28,7 +28,6 @@ jobs:
       - name: push changes
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.TAP_GITHUB_TOKEN }}
           repository: quorumcontrol/homebrew-dgit
 
   bottle:
