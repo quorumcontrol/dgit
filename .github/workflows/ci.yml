@@ -1,7 +1,6 @@
 name: Continuous Integration
 # once the tests can run without a tupelo net spun up, turn this back on
 # on: [push]
-on: []
 
 jobs:
   test:
