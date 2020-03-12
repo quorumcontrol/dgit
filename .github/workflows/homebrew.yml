@@ -7,12 +7,33 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout formula
+        uses: actions/checkout@v2
+          with:
+            repository: quorumcontrol/homebrew-dgit
+      - name: install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y perl
       - name: update release in formula
-        uses: izumin5210/action-homebrew-tap@v1.0.0
+        run: |
+          cd Formula
+          # update url
+          perl -p -i -e 's#^(\s*)url\s+.+$#$1url "${{ github.release.tarball_url }}"#' dgit.rb
+          # update sha256
+          export SHASUM=$(curl -L ${{ github.release.tarball_url }} | sha256sum | awk '{print $1}')
+          perl -p -i -e 's#^(\s*)sha256\s+.+$#$1sha256 "$SHASUM"#' dgit.rb
+          # remove outdated bottle info
+          perl -p -i -0 -e 's#^\s*bottle\s+do.*?end$^\s*$##ms' dgit.rb
+          # commit
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -am 'Update to ${{ github.release.tag_name }}'
+      - name: push changes
+        uses: ad-m/github-push-action@master
         with:
-          tap: quorumcontrol/homebrew-dgit
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tap-token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          github_token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          repository: quorumcontrol/homebrew-dgit
 
   bottle:
     runs-on: ${{ matrix.os }}
