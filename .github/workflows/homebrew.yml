@@ -9,8 +9,8 @@ jobs:
     steps:
       - name: checkout formula
         uses: actions/checkout@v2
-          with:
-            repository: quorumcontrol/homebrew-dgit
+        with:
+          repository: quorumcontrol/homebrew-dgit
       - name: install system deps
         run: |
           sudo apt-get update
