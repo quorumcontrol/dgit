@@ -1,0 +1,30 @@
+name: Homebrew Release & Bottle
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: [macos-latest]
+    steps:
+      - name: update release in formula
+        uses: izumin5210/action-homebrew-tap@v1
+        with:
+          tap: quorumcontrol/homebrew-dgit
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tap-token: ${{ secrets.TAP_GITHUB_TOKEN }}
+
+  bottle:
+    runs-on: ${{ matrix.os }}
+    needs: release
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15]
+    steps:
+      - name: install homebrew
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+      - name: build bottle
+        run: |
+          brew install --build-bottle quorumcontrol/dgit/dgit
+          brew bottle --root-url=${{ github.event.release.url }} quorumcontrol/dgit/dgit
