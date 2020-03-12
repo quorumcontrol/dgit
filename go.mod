@@ -28,6 +28,7 @@ require (
 	github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9
 	github.com/quorumcontrol/messages/v2 v2.1.3-0.20200129115245-2bfec5177653
 	github.com/quorumcontrol/tupelo-go-sdk v0.6.0-beta1.0.20200306010523-39fc767b60a1
+	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.14.0

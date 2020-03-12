@@ -1,4 +1,4 @@
-package runner
+package remotehelper
 
 import (
 	"bufio"
@@ -68,7 +68,6 @@ func TestRunnerIntegration(t *testing.T) {
 		stderr:  userMsgWriter,
 		keyring: kr,
 	}
-	runner.SetLogLevel()
 
 	go func() {
 		err = runner.Run(ctx, remoteConfig.Name, remoteConfig.URLs[0])

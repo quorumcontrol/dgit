@@ -1,4 +1,4 @@
-package runner
+package remotehelper
 
 import (
 	"crypto/ecdsa"

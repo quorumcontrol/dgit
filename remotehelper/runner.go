@@ -1,4 +1,4 @@
-package runner
+package remotehelper
 
 import (
 	"bufio"
@@ -21,8 +21,6 @@ import (
 
 var log = logging.Logger("dgit.runner")
 
-var defaultLogLevel = "PANIC"
-
 type Runner struct {
 	local   *git.Repository
 	stdin   io.Reader
@@ -32,36 +30,11 @@ type Runner struct {
 }
 
 func New(local *git.Repository) *Runner {
-	r := &Runner{
+	return &Runner{
 		local:  local,
 		stdin:  os.Stdin,
 		stdout: os.Stdout,
 		stderr: os.Stderr,
-	}
-	r.SetLogLevel()
-	return r
-}
-
-func (r *Runner) Run(ctx context.Context, args ...string) error {
-	subcommand := args[0]
-
-	switch subcommand {
-	case "remote-helper":
-		var (
-			remoteName string
-			remoteUrl  string
-		)
-		if len(args) > 1 {
-			remoteName = args[1]
-		}
-		if len(args) > 2 {
-			remoteUrl = args[2]
-		}
-		return r.runRemoteHelper(ctx, remoteName, remoteUrl)
-	case "":
-		return fmt.Errorf("missing subcommand")
-	default:
-		return fmt.Errorf("unknown subcommand: %s", subcommand)
 	}
 }
 
@@ -81,7 +54,7 @@ func (r *Runner) Run(ctx context.Context, args ...string) error {
 // http://git.661346.n2.nabble.com/remote-helper-example-with-push-fetch-capabilities-td7623009.html
 //
 
-func (r *Runner) runRemoteHelper(ctx context.Context, remoteName string, remoteUrl string) error {
+func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) error {
 	log.Infof("running git-remote-dgit on remote %s with url %s", remoteName, remoteUrl)
 
 	// get the named remote as reported by git, but then
@@ -105,17 +78,6 @@ func (r *Runner) runRemoteHelper(ctx context.Context, remoteName string, remoteU
 	})
 
 	stdinReader := bufio.NewReader(r.stdin)
-
-	tty, err := os.Create("/dev/tty")
-	if err != nil {
-		return err
-	}
-
-	ttyReader := bufio.NewReader(tty)
-
-	if ttyReader == nil {
-		return fmt.Errorf("ttyReader is nil")
-	}
 
 	for {
 		var err error
@@ -311,18 +273,6 @@ func (r *Runner) userMessage(format string, a ...interface{}) (n int, err error)
 		log.Infof("  " + resp.Text())
 	}
 	return fmt.Fprintf(r.stderr, format+"\n", a...)
-}
-
-func (r *Runner) SetLogLevel() {
-	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
-	if !ok {
-		logLevelStr = defaultLogLevel
-	}
-
-	err := logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr))
-	if err != nil {
-		fmt.Fprintf(r.stderr, "invalid value %s given for DGIT_LOG_LEVEL: %v", logLevelStr, err)
-	}
 }
 
 func (r *Runner) auth() (transport.AuthMethod, error) {
