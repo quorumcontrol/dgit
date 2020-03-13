@@ -16,11 +16,11 @@ jobs:
         run: |
           cd Formula
           export SHASUM=$(curl -L ${{ github.event.release.tarball_url }} | sha256sum | awk '{print $1}')
-          echo -e "url: \"${{ github.event.release.tarball_url }}\"\nsha256: \"${SHASUM}\"\n" > dgit.yml
+          echo -e "url: \"${{ github.event.release.tarball_url }}\"\nsha256: \"${SHASUM}\"" > dgit.yml
 
           # update bottles root_url
-          echo -e "bottles:\n  root_url: \"${{ github.event.release.assets_url }}\"\n" >> dgit.yml
-          echo -e "  sha256:\n" >> dgit.yml
+          echo -e "bottles:\n  root_url: \"${{ github.event.release.assets_url }}\"" >> dgit.yml
+          echo -e "  sha256:" >> dgit.yml
 
           # commit
           git config --local user.email "action@github.com"
@@ -53,13 +53,12 @@ jobs:
       - name: build bottle
         run: |
           brew install --build-bottle quorumcontrol/dgit/dgit
-          export BOTTLE=$(brew bottle --root-url=${{ github.event.release.url }} quorumcontrol/dgit/dgit)
-          # TODO: mv the dumb double hyphen file to the correct name here
+          brew bottle --root-url=${{ github.event.release.url }} quorumcontrol/dgit/dgit
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
         with:
           name: bottle-${{ runner.os }}-${{ github.event.release.tag_name }}
-          path: dgit-*-bottle.tar.gz
+          path: dgit--bottle.tar.gz
 
   update-formula:
     runs-on: ubuntu-latest
