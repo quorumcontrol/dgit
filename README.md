@@ -52,14 +52,14 @@ Or skip the cask and directly install with:
 Next you are going to run the init command in each repo you want to make decentralized:
 `dgit init`
 
-This command does three things.
+This command does three things.<br>
 First it sets the appropriate remote urls in gits .config file.<br>
 Second, it creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.<br>
 Third, it stores that repo on Skynet the decentralized storage solution from Sia. 
 
 From there you can proceed with normal git commands.
 The decentralized mirror will stay in sync as you make changes.
-If you ever want to pull from the mirror you can specify the mirror with a "dgit:".
+If you ever want to pull from the mirror you can specify the mirror with a "dgit:".<br>
 As an exmaple:
 `git clone dgit:\\your_username\repo_name`
 
