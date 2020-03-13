@@ -72,7 +72,7 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 	objDid := strings.Join([]string{"did", "sia", skylink}, ":")
 
 	writePath := storage.ObjectWritePath(o.Hash())
-	s.log.Debugf("saving Skylink %s to repo chaintree at %s", objDid, writePath)
+	s.log.Debugf("saving Skylink %s to repo chaintree at %s", link, writePath)
 
 	tx, err := chaintree.NewSetDataTransaction(writePath, objDid)
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 
 	skylink := strings.TrimPrefix(objDid, "did:sia:")
 
-	s.log.Debugf("downloading %s from Skynet", h.String())
+	s.log.Debugf("downloading %s from Skynet at sia://%s", h.String(), skylink)
 	data, err := skynet.Download(skylink, skynet.DefaultDownloadOptions)
 	if err != nil {
 		s.log.Errorf("could not download skylink %s from Skynet: %w", skylink, err)
