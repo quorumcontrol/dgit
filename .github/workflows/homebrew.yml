@@ -44,7 +44,7 @@ jobs:
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
       - name: add brew to path on linux
         run: |
-          echo "::add-path::$HOME/.linuxbrew/bin"
+          echo "::add-path::/home/linuxbrew/.linuxbrew/bin"
         if: runner.os == 'Linux'
       - uses: actions/checkout@v2
         with:
