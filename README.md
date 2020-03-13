@@ -43,15 +43,25 @@ With three simple steps you can create a decentralized mirror of your existing g
 All changes will be automatically propogated to the mirror version and the git services you depend on will be there when you need them.
 
 ### Installation
-- Run `make install`. Copies `git-remote-dgit` to your $GOPATH/bin dir, so add that to your path if necessary.
+A quick install using brew gets us started: 
+`brew tap quorumcontrol/dgit && brew install dgit`
+Or skip the cask and directly install with: 
+`brew install quorumcontrol/dgit/dgit`
 
 ### Usage
-Protocol is registered as `dgit`, so origin should look like:
-`git remote add origin dgit://quorumcontrol/tupelo`
+Next you are going to run the init command in each repo you want to make decentralized:
+`dgit init`
 
-Replacing `quorumcontrol/tupelo` with any repo name.
+This command does three things.
+First it sets the appropriate remote urls in gits .config file.
+Second, it creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.
+Third, it stores that repo on Skynet the decentralized storage solution from Sia. 
 
-Then proceed with normal git commands.
+From there you can proceed with normal git commands.
+The decentralized mirror will stay in sync as you make changes.
+If you ever want to pull from the mirror you can specify the mirror with a "dgit:".
+As an exmaple:
+`git clone dgit:\\your_username\repo_name`
 
 ### Building
 - Clone this repo.
