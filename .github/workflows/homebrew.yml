@@ -54,13 +54,14 @@ jobs:
         run: |
           brew install --build-bottle quorumcontrol/dgit/dgit
           brew bottle --verbose --debug --root-url=${{ github.event.release.url }} --no-rebuild --json quorumcontrol/dgit/dgit
-          ls -la
-          brew bottle --verbose --debug --merge --write dgit.json
+          export TARBALL=$(ls *.tar.gz)
+          export JSON=$(ls *.json)
+          brew bottle --verbose --debug --merge --write $JSON
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
         with:
           name: bottle-${{ runner.os }}-${{ github.event.release.tag_name }}
-          path: dgit--bottle.tar.gz
+          path: $TARBALL
 
   update-formula:
     runs-on: ubuntu-latest
