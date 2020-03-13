@@ -1,4 +1,4 @@
-package runner
+package remotehelper
 
 import (
 	"bufio"
@@ -12,7 +12,7 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
-	"github.com/quorumcontrol/decentragit-remote/transport/dgit"
+	"github.com/quorumcontrol/dgit/transport/dgit"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -20,8 +20,6 @@ import (
 )
 
 var log = logging.Logger("dgit.runner")
-
-var defaultLogLevel = "PANIC"
 
 type Runner struct {
 	local   *git.Repository
@@ -32,14 +30,12 @@ type Runner struct {
 }
 
 func New(local *git.Repository) *Runner {
-	r := &Runner{
+	return &Runner{
 		local:  local,
 		stdin:  os.Stdin,
 		stdout: os.Stdout,
 		stderr: os.Stderr,
 	}
-	r.SetLogLevel()
-	return r
 }
 
 // > Also, what are the advantages and disadvantages of a remote helper
@@ -82,17 +78,6 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 	})
 
 	stdinReader := bufio.NewReader(r.stdin)
-
-	tty, err := os.Create("/dev/tty")
-	if err != nil {
-		return err
-	}
-
-	ttyReader := bufio.NewReader(tty)
-
-	if ttyReader == nil {
-		return fmt.Errorf("ttyReader is nil")
-	}
 
 	for {
 		var err error
@@ -288,18 +273,6 @@ func (r *Runner) userMessage(format string, a ...interface{}) (n int, err error)
 		log.Infof("  " + resp.Text())
 	}
 	return fmt.Fprintf(r.stderr, format+"\n", a...)
-}
-
-func (r *Runner) SetLogLevel() {
-	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
-	if !ok {
-		logLevelStr = defaultLogLevel
-	}
-
-	err := logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr))
-	if err != nil {
-		fmt.Fprintf(r.stderr, "invalid value %s given for DGIT_LOG_LEVEL: %v", logLevelStr, err)
-	}
 }
 
 func (r *Runner) auth() (transport.AuthMethod, error) {

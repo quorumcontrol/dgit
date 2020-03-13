@@ -1,4 +1,4 @@
-package runner
+package remotehelper
 
 var MsgWelcome = `
 Welcome to dgit!

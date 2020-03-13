@@ -1,3 +1,4 @@
+
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
@@ -37,7 +38,6 @@
 - [License](#license)
 - [Contact](#contact)
 
-
 <!-- GETTING STARTED -->
 ## Getting Started
 With three simple steps you can create a decentralized mirror of your existing github project.
@@ -65,8 +65,6 @@ As an example:
 <br>
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
 a simple github rule as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your  dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
-
-
 
 ### Building
 - Clone this repo.

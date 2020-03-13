@@ -9,8 +9,8 @@ import (
 	. "gopkg.in/check.v1"
 	"gopkg.in/src-d/go-git.v4/storage/test"
 
-	"github.com/quorumcontrol/decentragit-remote/storage"
-	"github.com/quorumcontrol/decentragit-remote/tupelo/clientbuilder"
+	"github.com/quorumcontrol/dgit/storage"
+	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
 )
 
 func Test(t *testing.T) { TestingT(t) }

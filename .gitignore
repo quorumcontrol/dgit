@@ -5,7 +5,7 @@
 *.so
 *.dylib
 decentragit-remote
-git-remote-dgit
+/dgit
 
 # Test binary, built with `go test -c`
 *.test

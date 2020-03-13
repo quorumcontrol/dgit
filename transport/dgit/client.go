@@ -8,8 +8,8 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/nodestore"
-	"github.com/quorumcontrol/decentragit-remote/tupelo/clientbuilder"
-	"github.com/quorumcontrol/decentragit-remote/tupelo/repotree"
+	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
+	"github.com/quorumcontrol/dgit/tupelo/repotree"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"

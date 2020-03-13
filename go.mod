@@ -1,9 +1,9 @@
-module github.com/quorumcontrol/decentragit-remote
+module github.com/quorumcontrol/dgit
 
 go 1.13
 
 replace (
-	github.com/NebulousLabs/go-skynet => github.com/quorumcontrol/go-skynet v0.0.0-20200310210059-d794340c029a
+	github.com/NebulousLabs/go-skynet => github.com/quorumcontrol/go-skynet v0.0.0-20200312164139-76fb137005c8
 	github.com/go-critic/go-critic => github.com/go-critic/go-critic v0.4.0
 	github.com/golangci/errcheck => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
 	github.com/golangci/go-tools => github.com/golangci/go-tools v0.0.0-20190318060251-af6baa5dc196
@@ -28,6 +28,7 @@ require (
 	github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9
 	github.com/quorumcontrol/messages/v2 v2.1.3-0.20200129115245-2bfec5177653
 	github.com/quorumcontrol/tupelo-go-sdk v0.6.0-beta1.0.20200306010523-39fc767b60a1
+	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.14.0

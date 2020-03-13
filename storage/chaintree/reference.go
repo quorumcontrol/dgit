@@ -12,7 +12,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	gitstorage "gopkg.in/src-d/go-git.v4/storage"
 
-	"github.com/quorumcontrol/decentragit-remote/storage"
+	"github.com/quorumcontrol/dgit/storage"
 )
 
 type ReferenceStorage struct {
