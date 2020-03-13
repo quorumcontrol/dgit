@@ -19,7 +19,7 @@ jobs:
           echo -e "url: \"${{ github.event.release.tarball_url }}\"\nsha256: \"${SHASUM}\"" > dgit.yml
 
           # update bottles root_url
-          echo -e "bottles:\n  root_url: \"${{ github.event.release.assets_url }}\"" >> dgit.yml
+          echo -e "bottles:\n  root_url: \"https://github.com/quorumcontrol/dgit/releases/download/${{ github.event.release.tag_name }}\"" >> dgit.yml
           echo -e "  sha256:" >> dgit.yml
 
           # commit
