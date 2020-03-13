@@ -110,6 +110,7 @@ jobs:
           echo -e "    \"${SHASUM}\": \"x86_64_linux\"" >> dgit.yml
       - name: commit formula changes
         run: |
+          cd homebrew-dgit
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -am 'Update bottles to ${{ github.event.release.tag_name }}'
@@ -118,3 +119,4 @@ jobs:
         with:
           github_token: ${{ secrets.TAP_GITHUB_TOKEN }}
           repository: quorumcontrol/homebrew-dgit
+          path: homebrew-dgit
