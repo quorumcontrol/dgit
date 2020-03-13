@@ -25,7 +25,7 @@ jobs:
           # commit
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -am 'Update to ${{ github.event.release.tag_name }}'
+          git commit -a --allow-empty -m 'Update to ${{ github.event.release.tag_name }}'
       - name: push changes
         uses: ad-m/github-push-action@master
         with:
@@ -126,7 +126,7 @@ jobs:
           cd homebrew-dgit
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -am 'Update bottles to ${{ github.event.release.tag_name }}'
+          git commit -a --allow-empty -m 'Update bottles to ${{ github.event.release.tag_name }}'
       - name: push changes
         uses: ad-m/github-push-action@master
         with:
