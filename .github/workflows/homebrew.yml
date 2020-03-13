@@ -58,6 +58,7 @@ jobs:
       - name: build bottle
         run: |
           brew install --build-bottle quorumcontrol/dgit/dgit
+          cat $(brew config | grep PREFIX | awk '{print $2}')/Homebrew/Library/Taps/quorumcontrol/homebrew-dgit/Formula/dgit.rb
           brew bottle --root-url=${{ github.event.release.url }} quorumcontrol/dgit/dgit
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
