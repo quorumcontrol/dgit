@@ -57,17 +57,11 @@ jobs:
           brew install --build-bottle quorumcontrol/dgit/dgit
           brew bottle --root-url=${{ github.event.release.url }} --no-rebuild quorumcontrol/dgit/dgit
           echo "::set-env name=TARBALL::$(ls *.tar.gz)"
-          echo "$TARBALL" > tarball-name
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
         with:
           name: bottle-${{ runner.os }}-${{ github.event.release.tag_name }}
           path: ${{ env.TARBALL }}
-      - name: upload bottle name artifact
-        uses: actions/upload-artifact@v1
-        with:
-          name: bottle-name-${{ runner.os }}
-          path: tarball-name
 
   update-formula:
     runs-on: ubuntu-latest
@@ -77,26 +71,40 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: bottle-macOS-${{ github.event.release.tag_name }}
-      - name: download macOS bottle name
-        uses: actions/download-artifact@v1
-        with:
-          name: bottle-name-macOS
       - name: download linux bottle
         uses: actions/download-artifact@v1
         with:
           name: bottle-Linux-${{ github.event.release.tag_name }}
-      - name: download linux bottle name
-        uses: actions/download-artifact@v1
-        with:
-          name: bottle-name-Linux
+      - name: rename bottle files b/c WTF Homebrew
+        run: |
+          export DIR=bottle-macOS-${{ github.event.release.tag_name }}
+          export BOTTLE=$(ls bottle-macOS-${{ github.event.release.tag_name }})
+          mv $DIR/$BOTTLE $DIR/$(echo $BOTTLE | sed 's/--/-/')
+          export DIR=bottle-Linux-${{ github.event.release.tag_name }}
+          export BOTTLE=$(ls bottle-Linux-${{ github.event.release.tag_name }})
+          mv $DIR/$BOTTLE $DIR/$(echo $BOTTLE | sed 's/--/-/')
       - name: set bottle name env vars
         run: |
-          echo "::set-env name=BOTTLE_FILE_MACOS::$(cat bottle-name-macOS/*)"
-          echo "::set-env name=BOTTLE_FILE_LINUX::$(cat bottle-name-Linux/*)"
-      - name: upload bottles to GitHub
-        run: |
-          ls -la **
-          echo "TODO: Upload bottles to GitHub"
+          echo "::set-env name=BOTTLE_FILE_MACOS::$(ls bottle-macOS-${{ github.event.release.tag_name }}/)"
+          echo "::set-env name=BOTTLE_FILE_LINUX::$(ls bottle-name-Linux-${{ github.event.release.tag_name }}/)"
+      - name: upload macOS bottle to GitHub
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./bottle-macOS-${{ github.event.release.tag_name }}/${{ env.BOTTLE_FILE_MACOS }}
+          asset_name: ${{ env.BOTTLE_FILE_MACOS }}
+          asset_content_type: application/x-gtar
+      - name: upload Linux bottle to GitHub
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./bottle-Linux-${{ github.event.release.tag_name }}/${{ env.BOTTLE_FILE_LINUX }}
+          asset_name: ${{ env.BOTTLE_FILE_LINUX }}
+          asset_content_type: application/x-gtar
       - name: checkout formula
         uses: actions/checkout@v2
         with:
