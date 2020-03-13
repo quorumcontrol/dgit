@@ -100,12 +100,12 @@ jobs:
           path: homebrew-dgit
       - name: update macos bottle in homebrew formula
         run: |
-          SHASUM=$(sha256sum bottle-macOS-${{ github.event.release.tag_name }} | awk '{print $1}')
+          export SHASUM=$(sha256sum bottle-macOS-${{ github.event.release.tag_name }} | awk '{print $1}')
           cd homebrew-dgit/Formula
           echo -e "    \"${SHASUM}\": \"catalina\"" >> dgit.yml
       - name: update linux bottle in homebrew formula
         run: |
-          SHASUM=$(sha256sum bottle-Linux-${{ github.event.release.tag_name }} | awk '{print $1}')
+          export SHASUM=$(sha256sum bottle-Linux-${{ github.event.release.tag_name }} | awk '{print $1}')
           cd homebrew-dgit/Formula
           echo -e "    \"${SHASUM}\": \"x86_64_linux\"" >> dgit.yml
       - name: commit formula changes
