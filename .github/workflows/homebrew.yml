@@ -86,7 +86,7 @@ jobs:
       - name: set bottle name env vars
         run: |
           echo "::set-env name=BOTTLE_FILE_MACOS::$(ls bottle-macOS-${{ github.event.release.tag_name }}/)"
-          echo "::set-env name=BOTTLE_FILE_LINUX::$(ls bottle-name-Linux-${{ github.event.release.tag_name }}/)"
+          echo "::set-env name=BOTTLE_FILE_LINUX::$(ls bottle-Linux-${{ github.event.release.tag_name }}/)"
       - name: upload macOS bottle to GitHub
         uses: actions/upload-release-asset@v1
         env:
