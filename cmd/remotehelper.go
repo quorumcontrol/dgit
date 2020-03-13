@@ -58,7 +58,7 @@ var remoteHelperCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		client, err := dgit.NewClient(ctx)
+		client, err := dgit.NewClient(ctx, os.Getenv("GIT_DIR"))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, fmt.Sprintf("error starting dgit client: %v", err))
 			os.Exit(1)

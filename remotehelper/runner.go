@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/msg"
@@ -105,18 +104,11 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 		case "list":
 			refs, err := remote.List(&git.ListOptions{})
 
-			if err == transport.ErrRepositoryNotFound && args == "for-push" {
-				r.respond("\n")
-				continue
-			}
-
 			if err == transport.ErrRepositoryNotFound {
-				r.userMessage(msg.RepoNotFound)
-				r.respond("\n")
-				continue
+				return fmt.Errorf(msg.RepoNotFound)
 			}
 
-			if err == transport.ErrEmptyRemoteRepository {
+			if err == transport.ErrEmptyRemoteRepository || len(refs) == 0 {
 				r.respond("\n")
 				continue
 			}
@@ -155,11 +147,6 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 		case "push":
 			refSpec := config.RefSpec(args)
 
-			endpoint, err := transport.NewEndpoint(remote.Config().URLs[0])
-			if err != nil {
-				return err
-			}
-
 			auth, err := r.auth()
 			if err != nil {
 				return err
@@ -173,27 +160,8 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 				Auth:       auth,
 			})
 
-			// // TODO: init repo from user input
-			// // when dgit has webui could do it there too
-			// // should register their user name + repo name
 			if err == transport.ErrRepositoryNotFound {
-				err = nil // reset err back to nil
-				client, err := dgit.Default()
-				if err != nil {
-					return err
-				}
-
-				_, err = client.CreateRepoTree(ctx, endpoint, auth)
-				if err != nil {
-					return err
-				}
-
-				// Retry push now that repo exists
-				err = remote.PushContext(ctx, &git.PushOptions{
-					RemoteName: remote.Config().Name,
-					RefSpecs:   []config.RefSpec{refSpec},
-					Auth:       auth,
-				})
+				return fmt.Errorf(msg.RepoNotFound)
 			}
 
 			dst := refSpec.Dst(plumbing.ReferenceName("*"))
@@ -288,14 +256,11 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		}
 	}
 
-	privateKey, isNew, err := keyring.GetPrivateKey(r.keyring)
-	if err != nil {
-		return nil, err
-	}
-
-	if isNew {
-		keyringProviderName := keyring.Name(r.keyring)
-		r.userMessage(msg.Welcome, keyringProviderName, crypto.PubkeyToAddress(privateKey.PublicKey).String())
+	privateKey, err := keyring.FindPrivateKey(r.keyring)
+	if err == keyring.ErrKeyNotFound {
+		return nil, fmt.Errorf(msg.Parse(msg.PrivateKeyNotFound, map[string]interface{}{
+			"keyringProvider": keyring.Name(r.keyring),
+		}))
 	}
 
 	return dgit.NewPrivateKeyAuth(privateKey), nil

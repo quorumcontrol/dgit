@@ -29,6 +29,11 @@ var KeyringPrettyNames = map[string]string{
 	"*keyring.passKeyring":    "pass",
 }
 
+// TODO: scope private key by usernames
+var keyName = "default"
+
+var ErrKeyNotFound = keyringlib.ErrKeyNotFound
+
 func NewDefault() (Keyring, error) {
 	return keyringlib.Open(keyringlib.Config{
 		ServiceName:                    "dgit",
@@ -51,40 +56,52 @@ func Name(kr Keyring) string {
 	return name
 }
 
-func GetPrivateKey(kr Keyring) (key *ecdsa.PrivateKey, isNew bool, err error) {
-	// TODO: scope keyring by usernames
-	keyName := "default"
-
+func FindPrivateKey(kr Keyring) (key *ecdsa.PrivateKey, err error) {
 	privateKeyItem, err := kr.Get(keyName)
 	if err == keyringlib.ErrKeyNotFound {
-		isNew = true
-
-		privateKey, err := crypto.GenerateKey()
-		if err != nil {
-			return nil, isNew, err
-		}
-
-		privateKeyItem = keyringlib.Item{
-			Key:   keyName,
-			Label: "dgit." + keyName,
-			Data:  []byte(hexutil.Encode(crypto.FromECDSA(privateKey))),
-		}
-
-		err = kr.Set(privateKeyItem)
-		if err != nil {
-			return nil, isNew, fmt.Errorf("error saving private key for dgit: %v", err)
-		}
+		return nil, ErrKeyNotFound
 	}
 
 	privateKeyBytes, err := hexutil.Decode(string(privateKeyItem.Data))
 	if err != nil {
-		return nil, isNew, fmt.Errorf("error decoding user private key: %v", err)
+		return nil, fmt.Errorf("error decoding user private key: %v", err)
 	}
 
 	key, err = crypto.ToECDSA(privateKeyBytes)
 	if err != nil {
-		return key, isNew, fmt.Errorf("couldn't unmarshal ECDSA private key: %v", err)
+		return nil, fmt.Errorf("couldn't unmarshal ECDSA private key: %v", err)
 	}
 
-	return key, isNew, nil
+	return key, nil
+}
+
+func FindOrCreatePrivateKey(kr Keyring) (key *ecdsa.PrivateKey, isNew bool, err error) {
+	keyName := "default"
+
+	privateKey, err := FindPrivateKey(kr)
+	if err == nil {
+		return privateKey, false, nil
+	}
+
+	if err != ErrKeyNotFound {
+		return nil, false, err
+	}
+
+	privateKey, err = crypto.GenerateKey()
+	if err != nil {
+		return nil, true, err
+	}
+
+	privateKeyItem := keyringlib.Item{
+		Key:   keyName,
+		Label: "dgit." + keyName,
+		Data:  []byte(hexutil.Encode(crypto.FromECDSA(privateKey))),
+	}
+
+	err = kr.Set(privateKeyItem)
+	if err != nil {
+		return nil, true, fmt.Errorf("error saving private key for dgit: %v", err)
+	}
+
+	return privateKey, true, nil
 }
