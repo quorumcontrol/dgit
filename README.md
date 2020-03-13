@@ -44,7 +44,7 @@ All changes will be automatically propogated to the mirror version and the git s
 
 ### Installation
 A quick install using brew gets us started: 
-`brew tap quorumcontrol/dgit && brew install dgit`
+`brew tap quorumcontrol/dgit && brew install dgit` <br>
 Or skip the cask and directly install with: 
 `brew install quorumcontrol/dgit/dgit`
 
@@ -53,8 +53,8 @@ Next you are going to run the init command in each repo you want to make decentr
 `dgit init`
 
 This command does three things.
-First it sets the appropriate remote urls in gits .config file.
-Second, it creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.
+First it sets the appropriate remote urls in gits .config file.<br>
+Second, it creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.<br>
 Third, it stores that repo on Skynet the decentralized storage solution from Sia. 
 
 From there you can proceed with normal git commands.
