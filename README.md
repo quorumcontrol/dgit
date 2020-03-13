@@ -11,11 +11,11 @@
   <h3 align="center">dgit</h3>
 
   <p align="center">
-    <b>dgit</b> is an opensource project built by Quorum Control which combines
-    the power of <br>git, the Tupelo DLT and Skynet from Sia.  <br>
+    <b>dgit</b> is an open-source project built by [Quorum Control](https://www.tupelo.org/) which combines
+    the power of <br>git, the [Tupelo DLT](https://docs.tupelo.org/) and [Skynet](https://siasky.net/) from Sia.  <br>
     <b>dgit</b> uses decentralized ownership and storage to make it trivial to
-    create a decentralized mirror of your project.<br>
-    <b>dgit</b> accomplishes this without changing your github workflow.<br>
+    create a decentralized, shareable git remote of your project.<br>
+    <b>dgit</b> accomplishes this without changing your GitHub workflow except that you can keep collaborating when it goes down.<br>
   </p>
 </p>
 
@@ -28,6 +28,7 @@
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
   - [Usage](#usage)
@@ -45,7 +46,7 @@ All changes will be automatically propogated to the mirror version and the git s
 ### Installation
 A quick install using brew gets us started: 
 `brew tap quorumcontrol/dgit && brew install dgit` <br>
-Or skip the cask and directly install with: 
+Or skip the tap and directly install with: 
 `brew install quorumcontrol/dgit/dgit`
 
 ### Usage
@@ -53,19 +54,23 @@ Next you are going to run the init command in each repo you want to make decentr
 `dgit init`
 
 This command does three things.<br>
-First it sets the appropriate remote urls in gits .config file.<br>
-Second, it creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.<br>
-Third, it stores that repo on Skynet the decentralized storage solution from Sia. 
+1. <b>dgit</b> sets the appropriate remote urls in your repo's .git/config file.<br>
+2. <b>dgit</b> creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.<br>
+3. <b>dgit</b> stores that repo on Skynet, the decentralized storage solution from Sia. 
 
-From there you can proceed with normal git commands.
-The decentralized mirror will stay in sync as you make changes.
+From there you can proceed with normal git commands.<br>
 If you ever want to pull from the mirror you can specify the mirror with a "dgit:".<br>
-As an exmaple:
-`git clone dgit:\\your_username\repo_name`
+As an example:
+`git clone dgit://your_username/repo_name`
+<br>
+If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
+a simple github rule as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your  dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
+
+
 
 ### Building
 - Clone this repo.
-- Run `make`. Generates `./git-remote-dgit` in top level dir.
+- Run `make`. Generates `./dgit` in top level dir.
 
 <!-- CONTRIBUTING -->
 ## Contributing
