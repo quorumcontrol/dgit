@@ -55,7 +55,7 @@ jobs:
           TARBALL: unknown
         run: |
           brew install --build-bottle quorumcontrol/dgit/dgit
-          brew bottle --root-url=${{ github.event.release.url }} --no-rebuild quorumcontrol/dgit/dgit
+          brew bottle --root-url=https://github.com/quorumcontrol/dgit/releases/download/${{ github.event.release.tag_name }} --no-rebuild quorumcontrol/dgit/dgit
           echo "::set-env name=TARBALL::$(ls *.tar.gz)"
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
