@@ -5,8 +5,7 @@ Welcome to dgit!
 
 A private key has been generated for you and is stored in {{.keyringProvider}}.
 
-Below is your dgit public address, share this with others to gain write access to dgit repos.
-
+Below is your dgit public address, share this with others so they can grant you write access to dgit repos.
 {{.userAddress}}
 `
 
@@ -17,7 +16,8 @@ dgit would like to add {{.repourl}} to the '{{.remote}}' remote. This allows 'gi
 var AddDgitToRemoteConfirm = `Is that ok?`
 
 var AddedDgitToRemote = `
-Success, dgit is now superpowering the '{{.remote}}' remote. Continue using your normal git workflow and enjoy being decentralized.
+Success, dgit is now superpowering the '{{.remote}}' remote.
+Continue using your normal git workflow and enjoy being decentralized.
 `
 
 var AddDgitRemote = `
@@ -27,18 +27,21 @@ dgit would like to add the '{{.remote}}' remote to this repo so that you can fet
 var AddDgitRemoteConfirm = AddDgitToRemoteConfirm
 
 var AddedDgitRemote = `
-Success, dgit is now accessible under the '{{.remote}}' remote - 'git fetch {{.remote}}' will work flawlessly from your decentralized repo.
+Success, dgit is now accessible under the '{{.remote}}' remote.
+'git fetch {{.remote}}' will work flawlessly from your decentralized repo.
 `
 
 var FinalInstructions = `
-You are setup and ready to roll with dgit. Just use git like normal and enjoy a fully decentralized repo.
+You are setup and ready to roll with dgit.
+Just use git as you usually would and enjoy a fully decentralized repo.
 
-If you would like to clone this repo from dgit on another machine, simply run 'git clone {{.repourl}}'.
+If you would like to clone this dgit repo on another machine, simply run 'git clone {{.repourl}}'.
 
-If you use github for this repo, we also recommed adding a dgit action to keep your post-PR branches up to date on dgit. You can find it here:
+If you use GitHub for this repo, we recommend adding a dgit action to keep your post-PR branches in sync on dgit.
+You can find the necessary action here:
 https://github.com/quorumcontrol/dgit-github-action
 
-Finally for more docs and issues, please visit our github page:
+Finally for more docs or if you have any issues, please visit our github page:
 https://github.com/quorumcontrol/dgit
 `
 
@@ -46,7 +49,7 @@ var PromptRepoNameConfirm = `It appears your repo is '{{.repo}}', is that correc
 
 var PromptRepoName = `What is your full repo name?`
 
-var PromptRepoNameInvalid = `Enter a valid repo name in the format '${user_or_org}/${repo_name}'`
+var PromptRepoNameInvalid = `Enter a valid repo name in the form '${user_or_org}/${repo_name}'`
 
 var PrivateKeyNotFound = `
 Could not load your dgit private key from {{.keyringProvider}}. Try running 'dgit init' again.
@@ -55,9 +58,10 @@ Could not load your dgit private key from {{.keyringProvider}}. Try running 'dgi
 var RepoCreated = `
 Your dgit repo has been created at '{{.repo}}'.
 
-dgit repo identities and authorization are secured by Tupelo - this repo's unique id is '{{.did}}'.
+dgit repo identities and authorizations are secured by Tupelo - this repo's unique id is:
+'{{.did}}'.
 
-Storage of the repo is backed by the powerful Sia Skynet.
+Storage of the repo is backed by Sia Skynet.
 `
 
 var RepoNotFound = `
