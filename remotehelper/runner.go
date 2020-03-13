@@ -138,7 +138,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 
 			// if head is empty, use last as default
 			if head == "" {
-				head = listResponse[len(listResponse)-1]
+				head = strings.Split(listResponse[len(listResponse)-1], " ")[1]
 			}
 
 			r.respond("@%s HEAD\n", head)
