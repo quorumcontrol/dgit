@@ -51,17 +51,23 @@ jobs:
           repository: quorumcontrol/homebrew-dgit
           persist-credentials: false
       - name: build bottle
+        env:
+          TARBALL: unknown
         run: |
           brew install --build-bottle quorumcontrol/dgit/dgit
-          brew bottle --verbose --debug --root-url=${{ github.event.release.url }} --no-rebuild --json quorumcontrol/dgit/dgit
-          export TARBALL=$(ls *.tar.gz)
-          export JSON=$(ls *.json)
-          brew bottle --verbose --debug --merge --write $JSON
+          brew bottle --root-url=${{ github.event.release.url }} --no-rebuild quorumcontrol/dgit/dgit
+          echo "::set-env name=TARBALL::$(ls *.tar.gz)"
+          echo "$TARBALL" > tarball-name
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
         with:
           name: bottle-${{ runner.os }}-${{ github.event.release.tag_name }}
-          path: $TARBALL
+          path: ${{ env.TARBALL }}
+      - name: upload bottle name artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: bottle-name-${{ runner.os }}
+          path: tarball-name
 
   update-formula:
     runs-on: ubuntu-latest
@@ -71,10 +77,21 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: bottle-macOS-${{ github.event.release.tag_name }}
+      - name: download macOS bottle name
+        uses: actions/download-artifact@v1
+        with:
+          name: tarball-name-macOS
       - name: download linux bottle
         uses: actions/download-artifact@v1
         with:
           name: bottle-Linux-${{ github.event.release.tag_name }}
+      - name: download linux bottle name
+        uses: actions/download-artifact@v1
+        with:
+          name: tarball-name-Linux
+      - name: upload bottles to GitHub
+        run: |
+          echo "TODO: Upload bottles to GitHub"
       - name: checkout formula
         uses: actions/checkout@v2
         with:
