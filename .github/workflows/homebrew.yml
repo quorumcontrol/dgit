@@ -23,7 +23,7 @@ jobs:
           echo -e "  sha256:" >> dgit.yml
 
           # append YAML to end of dgit.rb
-          perl -p -i -e 's/^__END__.*/__END__\n/sm' dgit.rb
+          perl -p -i -0 -e 's/^__END__.*/__END__\n/sm' dgit.rb
           cat dgit.yml >> dgit.rb
           rm dgit.yml
 
