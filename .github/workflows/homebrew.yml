@@ -22,11 +22,6 @@ jobs:
           echo -e "bottles:\n  root_url: \"${{ github.event.release.assets_url }}\"" >> dgit.yml
           echo -e "  sha256:" >> dgit.yml
 
-          # append YAML to end of dgit.rb
-          perl -p -i -0 -e 's/^__END__.*/__END__\n/sm' dgit.rb
-          cat dgit.yml >> dgit.rb
-          rm dgit.yml
-
           # commit
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -58,7 +53,6 @@ jobs:
       - name: build bottle
         run: |
           brew install --build-bottle quorumcontrol/dgit/dgit
-          cat $(brew config | grep PREFIX | awk '{print $2}')/Homebrew/Library/Taps/quorumcontrol/homebrew-dgit/Formula/dgit.rb
           brew bottle --root-url=${{ github.event.release.url }} quorumcontrol/dgit/dgit
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
@@ -88,12 +82,12 @@ jobs:
         run: |
           SHASUM=$(sha256sum bottle-macOS-${{ github.event.release.tag_name }} | awk '{print $1}')
           cd homebrew-dgit/Formula
-          echo -e "    \"${SHASUM}\": \"catalina\"" >> dgit.rb
+          echo -e "    \"${SHASUM}\": \"catalina\"" >> dgit.yml
       - name: update linux bottle in homebrew formula
         run: |
           SHASUM=$(sha256sum bottle-Linux-${{ github.event.release.tag_name }} | awk '{print $1}')
           cd homebrew-dgit/Formula
-          echo -e "    \"${SHASUM}\": \"linux\"" >> dgit.rb
+          echo -e "    \"${SHASUM}\": \"linux\"" >> dgit.yml
       - name: commit formula changes
         run: |
           git config --local user.email "action@github.com"
