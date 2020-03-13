@@ -53,7 +53,9 @@ jobs:
       - name: build bottle
         run: |
           brew install --build-bottle quorumcontrol/dgit/dgit
-          brew bottle --root-url=${{ github.event.release.url }} quorumcontrol/dgit/dgit
+          brew bottle --verbose --debug --root-url=${{ github.event.release.url }} --no-rebuild --json quorumcontrol/dgit/dgit
+          ls -la
+          brew bottle --verbose --debug --merge --write dgit.json
       - name: upload bottle artifact
         uses: actions/upload-artifact@v1
         with:
