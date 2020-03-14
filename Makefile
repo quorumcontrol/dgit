@@ -15,12 +15,17 @@ $(FIRSTGOPATH)/bin/dgit: dgit
 $(FIRSTGOPATH)/bin/git-remote-dgit:
 	cp git-remote-dgit $(FIRSTGOPATH)/bin/
 
+dgit.tar.gz: dgit git-remote-dgit
+	tar -czvf dgit.tar.gz dgit git-remote-dgit
+
+tarball: dgit.tar.gz
+
 install: $(FIRSTGOPATH)/bin/dgit $(FIRSTGOPATH)/bin/git-remote-dgit
 
 test:
 	go test ./...
 
 clean:
-	rm dgit
+	rm -f dgit dgit.tar.gz
 
-.PHONY: all build install test clean
+.PHONY: all build tarball install test clean
