@@ -5,6 +5,7 @@ on:
 
 jobs:
   release:
+    if: "!github.event.release.prerelease"
     runs-on: ubuntu-latest
     steps:
       - name: checkout formula
@@ -33,6 +34,7 @@ jobs:
           repository: quorumcontrol/homebrew-dgit
 
   build-bottle:
+    if: "!github.event.release.prerelease"
     runs-on: ${{ matrix.os }}
     needs: release
     strategy:
@@ -64,6 +66,7 @@ jobs:
           path: ${{ env.TARBALL }}
 
   update-formula:
+    if: "!github.event.release.prerelease"
     runs-on: ubuntu-latest
     needs: build-bottle
     steps:
