@@ -1,17 +1,94 @@
-## dgit remote helper
-Implements a [git remote helper](https://git-scm.com/docs/git-remote-helpers) that stores repo information in a ChainTree.
+
+[![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
+
+<!-- PROJECT LOGO -->
+<br />
+<p align="center">
+  <a href="https://github.com/quorumcontrol/dgit">
+    <img src="dgit-black.png" alt="Logo" width="150" height="125">
+  </a>
+
+  <h3 align="center">dgit</h3>
+
+  <p align="center">
+    <b>dgit</b> is an open-source project built by [Quorum Control](https://www.tupelo.org/) which combines
+    the power of <br>git, the [Tupelo DLT](https://docs.tupelo.org/) and [Skynet](https://siasky.net/) from Sia.  <br>
+    <b>dgit</b> uses decentralized ownership and storage to make it trivial to
+    create a decentralized, shareable git remote of your project.<br>
+    <b>dgit</b> accomplishes this without changing your GitHub workflow except that you can keep collaborating when it goes down.<br>
+  </p>
+</p>
+
+### Built With
+
+* [Git](https://git-scm.com/)
+* [Tupelo DLT](https://docs.tupelo.org/)
+* [Skynet](https://siasky.net/)
+
+<!-- TABLE OF CONTENTS -->
+## Table of Contents
+
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Building](#building)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+
+<!-- GETTING STARTED -->
+## Getting Started
+With three simple steps you can create a decentralized mirror of your existing github project.
+All changes will be automatically propogated to the mirror version and the git services you depend on will be there when you need them.
+
+### Installation
+A quick install using brew gets us started: 
+`brew tap quorumcontrol/dgit && brew install dgit` <br>
+Or skip the tap and directly install with: 
+`brew install quorumcontrol/dgit/dgit`
 
 ### Usage
-Protocol is registered as `dgit`, so origin should look like:
-`git remote add origin dgit://quorumcontrol/dgit`
+Next you are going to run the init command in each repo you want to make decentralized:
+`dgit init`
 
-Replacing `quorumcontrol/dgit` with any repo name
+This command does three things.<br>
+1. <b>dgit</b> sets the appropriate remote urls in your repo's .git/config file.<br>
+2. <b>dgit</b> creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.<br>
+3. <b>dgit</b> stores that repo on Skynet, the decentralized storage solution from Sia. 
 
-Then proceed with normal git commands
+From there you can proceed with normal git commands.<br>
+If you ever want to pull from the mirror you can specify the mirror with a "dgit:".<br>
+As an example:
+`git clone dgit://your_username/repo_name`
+<br>
+If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
+a simple github rule as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your  dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
 
 ### Building
 - Clone this repo.
 - Run `make`. Generates `./dgit` in top level dir.
 
-### Installation
-- Run `make install`. Copies `dgit` and `git-remote-dgit` to your $GOPATH/bin dir, so add that to your path if necessary.
+<!-- CONTRIBUTING -->
+## Contributing
+
+Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+<!-- CONTACT -->
+## Contact
+
+Hop into our developer chat on Telegram: https://t.me/joinchat/IhpojEWjbW9Y7_H81Y7rAA
+
+Project Link: [https://github.com/quorumcontrol/dgit](https://github.com/quorumcontrol/dgit)
