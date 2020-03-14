@@ -1,0 +1,29 @@
+name: Binary Release
+on:
+  release:
+    types: [published, prereleased]
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: setup Go
+        uses: actions/setup-go@v2-beta
+        with:
+          go-version: '^1.14.0'
+      - name: compile & make tarball
+        run: make tarball
+      - name: upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dgit.tar.gz
+          asset_name: dgit-${{ runner.os }}-x86_64.tar.gz
+          asset_content_type: application/x-gtar
