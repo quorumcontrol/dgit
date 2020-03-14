@@ -1,0 +1,135 @@
+name: Homebrew Release & Bottle
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout formula
+        uses: actions/checkout@v2
+        with:
+          repository: quorumcontrol/homebrew-dgit
+          persist-credentials: false
+      - name: update release in formula
+        run: |
+          cd Formula
+          export SHASUM=$(curl -L ${{ github.event.release.tarball_url }} | sha256sum | awk '{print $1}')
+          echo -e "url: \"${{ github.event.release.tarball_url }}\"\nsha256: \"${SHASUM}\"" > dgit.yml
+
+          # update bottles root_url
+          echo -e "bottles:\n  root_url: \"https://github.com/quorumcontrol/dgit/releases/download/${{ github.event.release.tag_name }}\"" >> dgit.yml
+          echo -e "  sha256:" >> dgit.yml
+
+          # commit
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -a --allow-empty -m 'Update to ${{ github.event.release.tag_name }}'
+      - name: push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          repository: quorumcontrol/homebrew-dgit
+
+  build-bottle:
+    runs-on: ${{ matrix.os }}
+    needs: release
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15]
+    steps:
+      - name: install homebrew
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+      - name: add brew to path on linux
+        run: |
+          echo "::add-path::/home/linuxbrew/.linuxbrew/bin"
+        if: runner.os == 'Linux'
+      - uses: actions/checkout@v2
+        with:
+          repository: quorumcontrol/homebrew-dgit
+          persist-credentials: false
+      - name: build bottle
+        env:
+          TARBALL: unknown
+        run: |
+          brew install --build-bottle quorumcontrol/dgit/dgit
+          brew bottle --root-url=https://github.com/quorumcontrol/dgit/releases/download/${{ github.event.release.tag_name }} --no-rebuild quorumcontrol/dgit/dgit
+          echo "::set-env name=TARBALL::$(ls *.tar.gz)"
+      - name: upload bottle artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: bottle-${{ runner.os }}-${{ github.event.release.tag_name }}
+          path: ${{ env.TARBALL }}
+
+  update-formula:
+    runs-on: ubuntu-latest
+    needs: build-bottle
+    steps:
+      - name: download macOS bottle
+        uses: actions/download-artifact@v1
+        with:
+          name: bottle-macOS-${{ github.event.release.tag_name }}
+      - name: download linux bottle
+        uses: actions/download-artifact@v1
+        with:
+          name: bottle-Linux-${{ github.event.release.tag_name }}
+      - name: rename bottle files b/c WTF Homebrew
+        run: |
+          export DIR=bottle-macOS-${{ github.event.release.tag_name }}
+          export BOTTLE=$(ls bottle-macOS-${{ github.event.release.tag_name }})
+          mv $DIR/$BOTTLE $DIR/$(echo $BOTTLE | sed 's/--/-/')
+          export DIR=bottle-Linux-${{ github.event.release.tag_name }}
+          export BOTTLE=$(ls bottle-Linux-${{ github.event.release.tag_name }})
+          mv $DIR/$BOTTLE $DIR/$(echo $BOTTLE | sed 's/--/-/')
+      - name: set bottle name env vars
+        run: |
+          echo "::set-env name=BOTTLE_FILE_MACOS::$(ls bottle-macOS-${{ github.event.release.tag_name }}/)"
+          echo "::set-env name=BOTTLE_FILE_LINUX::$(ls bottle-Linux-${{ github.event.release.tag_name }}/)"
+      - name: upload macOS bottle to GitHub
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./bottle-macOS-${{ github.event.release.tag_name }}/${{ env.BOTTLE_FILE_MACOS }}
+          asset_name: ${{ env.BOTTLE_FILE_MACOS }}
+          asset_content_type: application/x-gtar
+      - name: upload Linux bottle to GitHub
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./bottle-Linux-${{ github.event.release.tag_name }}/${{ env.BOTTLE_FILE_LINUX }}
+          asset_name: ${{ env.BOTTLE_FILE_LINUX }}
+          asset_content_type: application/x-gtar
+      - name: checkout formula
+        uses: actions/checkout@v2
+        with:
+          repository: quorumcontrol/homebrew-dgit
+          persist-credentials: false
+          path: homebrew-dgit
+      - name: update macos bottle in homebrew formula
+        run: |
+          export SHASUM=$(sha256sum bottle-macOS-${{ github.event.release.tag_name }}/* | awk '{print $1}')
+          cd homebrew-dgit/Formula
+          echo -e "    \"${SHASUM}\": \"catalina\"" >> dgit.yml
+      - name: update linux bottle in homebrew formula
+        run: |
+          export SHASUM=$(sha256sum bottle-Linux-${{ github.event.release.tag_name }}/* | awk '{print $1}')
+          cd homebrew-dgit/Formula
+          echo -e "    \"${SHASUM}\": \"x86_64_linux\"" >> dgit.yml
+      - name: commit formula changes
+        run: |
+          cd homebrew-dgit
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -a --allow-empty -m 'Update bottles to ${{ github.event.release.tag_name }}'
+      - name: push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          repository: quorumcontrol/homebrew-dgit
+          directory: homebrew-dgit
