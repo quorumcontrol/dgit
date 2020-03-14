@@ -38,7 +38,7 @@ func NewChainTreeLoader(ctx context.Context, tupelo *tupelo.Client, nodestore no
 }
 
 func (l *ChainTreeLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
-	chainTree, err := repotree.Find(l.ctx, ep.Host+"/"+ep.Path, l.tupelo)
+	chainTree, err := repotree.Find(l.ctx, ep.Host+ep.Path, l.tupelo)
 
 	var privateKey *ecdsa.PrivateKey
 
