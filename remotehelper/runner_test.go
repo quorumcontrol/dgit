@@ -61,12 +61,12 @@ func TestRunnerIntegration(t *testing.T) {
 	require.NotNil(t, userMsgReader)
 
 	kr := keyring.NewMemory()
-	pkey, isNew, err := keyring.FindOrCreatePrivateKey(kr)
+	_, isNew, err := keyring.FindOrCreatePrivateKey(kr)
 	require.Nil(t, err)
 	require.True(t, isNew)
 
-	_, err = client.CreateRepoTree(ctx, endpoint, dgit.NewPrivateKeyAuth(pkey), "chaintree")
-	require.Nil(t, err)
+	// _, err = client.CreateRepoTree(ctx, endpoint, dgit.NewPrivateKeyAuth(pkey), "chaintree")
+	// require.Nil(t, err)
 
 	runner := &Runner{
 		local:   local,

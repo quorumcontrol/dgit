@@ -104,6 +104,11 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 		case "list":
 			refs, err := remote.List(&git.ListOptions{})
 
+			if err == transport.ErrRepositoryNotFound && args == "for-push" {
+				r.respond("\n")
+				continue
+			}
+
 			if err == transport.ErrRepositoryNotFound {
 				return fmt.Errorf(msg.RepoNotFound)
 			}
@@ -147,6 +152,11 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 		case "push":
 			refSpec := config.RefSpec(args)
 
+			endpoint, err := transport.NewEndpoint(remote.Config().URLs[0])
+			if err != nil {
+				return err
+			}
+
 			auth, err := r.auth()
 			if err != nil {
 				return err
@@ -161,7 +171,23 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			})
 
 			if err == transport.ErrRepositoryNotFound {
-				return fmt.Errorf(msg.RepoNotFound)
+				err = nil // reset err back to nil
+				client, err := dgit.Default()
+				if err != nil {
+					return err
+				}
+
+				_, err = client.CreateRepoTree(ctx, endpoint, auth, os.Getenv("DGIT_OBJ_STORAGE"))
+				if err != nil {
+					return err
+				}
+
+				// Retry push now that repo exists
+				err = remote.PushContext(ctx, &git.PushOptions{
+					RemoteName: remote.Config().Name,
+					RefSpecs:   []config.RefSpec{refSpec},
+					Auth:       auth,
+				})
 			}
 
 			dst := refSpec.Dst(plumbing.ReferenceName("*"))
