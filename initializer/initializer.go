@@ -201,38 +201,40 @@ func (i *Initializer) determineDgitEndpint() (*transport.Endpoint, error) {
 		return transport.NewEndpoint(dgitUrls[0])
 	}
 
-	otherEndpoint, err := transport.NewEndpoint(remotes[0].Config().URLs[0])
-	if err != nil {
-		return nil, err
-	}
+	if len(remotes) > 0 {
+		otherEndpoint, err := transport.NewEndpoint(remotes[0].Config().URLs[0])
+		if err != nil {
+			return nil, err
+		}
 
-	repoFullPath := strings.ToLower(strings.TrimSuffix(otherEndpoint.Path, ".git"))
-	repoUser := strings.Split(repoFullPath, "/")[0]
-	repoName := strings.TrimPrefix(repoFullPath, repoUser+"/")
-	dgitEndpoint, err = newDgitEndpoint(repoUser, repoName)
-	if err != nil {
-		return nil, err
+		repoFullPath := strings.ToLower(strings.TrimSuffix(otherEndpoint.Path, ".git"))
+		repoUser := strings.Split(repoFullPath, "/")[0]
+		repoName := strings.TrimPrefix(repoFullPath, repoUser+"/")
+		dgitEndpoint, err = newDgitEndpoint(repoUser, repoName)
+		if err != nil {
+			return nil, err
+		}
+
+		prompt := promptui.Prompt{
+			Label: stripNewLines(msg.Parse(msg.PromptRepoNameConfirm, map[string]interface{}{
+				"remote": "origin",
+				"repo":   repoNameFor(dgitEndpoint),
+			})),
+			Templates: promptTemplates,
+			IsConfirm: true,
+			Default:   "y",
+			Stdin:     i.stdin,
+			Stdout:    i.stdout,
+		}
+		_, err = prompt.Run()
+		fmt.Fprintln(i.stdout)
+		// if err is abort, continue on below
+		if err != promptui.ErrAbort {
+			return dgitEndpoint, err
+		}
 	}
 
 	prompt := promptui.Prompt{
-		Label: stripNewLines(msg.Parse(msg.PromptRepoNameConfirm, map[string]interface{}{
-			"remote": "origin",
-			"repo":   repoNameFor(dgitEndpoint),
-		})),
-		Templates: promptTemplates,
-		IsConfirm: true,
-		Default:   "y",
-		Stdin:     i.stdin,
-		Stdout:    i.stdout,
-	}
-	_, err = prompt.Run()
-	fmt.Fprintln(i.stdout)
-	// if err is abort, continue on below
-	if err != promptui.ErrAbort {
-		return dgitEndpoint, err
-	}
-
-	prompt = promptui.Prompt{
 		Label:     stripNewLines(msg.PromptRepoName),
 		Templates: promptTemplates,
 		Stdin:     i.stdin,
@@ -251,8 +253,8 @@ func (i *Initializer) determineDgitEndpint() (*transport.Endpoint, error) {
 		return nil, err
 	}
 	result = strings.ToLower(result)
-	repoUser = strings.Split(result, "/")[0]
-	repoName = strings.TrimPrefix(result, repoUser+"/")
+	repoUser := strings.Split(result, "/")[0]
+	repoName := strings.TrimPrefix(result, repoUser+"/")
 	return newDgitEndpoint(repoUser, repoName)
 }
 
