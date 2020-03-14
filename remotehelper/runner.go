@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/msg"
@@ -273,6 +275,12 @@ func (r *Runner) userMessage(format string, a ...interface{}) (n int, err error)
 func (r *Runner) auth() (transport.AuthMethod, error) {
 	var err error
 
+	// mainly used for github actions
+	envAuth, err := r.authFromEnv()
+	if envAuth != nil || err != nil {
+		return envAuth, err
+	}
+
 	if r.keyring == nil {
 		r.keyring, err = keyring.NewDefault()
 
@@ -287,6 +295,25 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		return nil, fmt.Errorf(msg.Parse(msg.PrivateKeyNotFound, map[string]interface{}{
 			"keyringProvider": keyring.Name(r.keyring),
 		}))
+	}
+
+	return dgit.NewPrivateKeyAuth(privateKey), nil
+}
+
+func (r *Runner) authFromEnv() (transport.AuthMethod, error) {
+	privateKeyEnv, ok := os.LookupEnv("DGIT_PRIVATE_KEY")
+	if !ok {
+		return nil, nil
+	}
+
+	privateKeyBytes, err := hexutil.Decode(privateKeyEnv)
+	if err != nil {
+		return nil, fmt.Errorf("error hex decoding DGIT_PRIVATE_KEY: %v", err)
+	}
+
+	privateKey, err := crypto.ToECDSA(privateKeyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling DGIT_PRIVATE_KEY into ECDSA private key: %v", err)
 	}
 
 	return dgit.NewPrivateKeyAuth(privateKey), nil
