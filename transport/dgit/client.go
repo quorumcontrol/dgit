@@ -3,7 +3,6 @@ package dgit
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
 
 	logging "github.com/ipfs/go-log"
@@ -30,6 +29,10 @@ type Client struct {
 
 const protocol = "dgit"
 
+func Protocol() string {
+	return protocol
+}
+
 func Default() (*Client, error) {
 	client, ok := gitclient.Protocols[protocol]
 	if !ok {
@@ -44,10 +47,10 @@ func Default() (*Client, error) {
 	return asClient, nil
 }
 
-func NewClient(ctx context.Context) (*Client, error) {
+func NewClient(ctx context.Context, basePath string) (*Client, error) {
 	var err error
 	c := &Client{ctx: ctx}
-	dir := path.Join(os.Getenv("GIT_DIR"), protocol)
+	dir := path.Join(basePath, protocol)
 	c.tupelo, c.nodestore, err = clientbuilder.Build(ctx, dir)
 	return c, err
 }
@@ -61,16 +64,18 @@ func NewLocalClient(ctx context.Context) (*Client, error) {
 }
 
 // FIXME: this probably shouldn't be here
-func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoint, auth transport.AuthMethod) (*consensus.SignedChainTree, error) {
-	// TODO: When `dgit` or prompt  exists; allow configuring this w/ CLI args, API options, etc.
-	objStorageType := os.Getenv("DGIT_OBJ_STORAGE")
+func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoint, auth transport.AuthMethod, storage string) (*consensus.SignedChainTree, error) {
 	return repotree.Create(ctx, &repotree.RepoTreeOptions{
-		Name:              endpoint.Host + "/" + endpoint.Path,
-		ObjectStorageType: objStorageType,
+		Name:              endpoint.Host + endpoint.Path,
+		ObjectStorageType: storage,
 		Client:            c.tupelo,
 		NodeStore:         c.nodestore,
 		Ownership:         []string{auth.String()},
 	})
+}
+
+func (c *Client) FindRepoTree(ctx context.Context, repo string) (*consensus.SignedChainTree, error) {
+	return repotree.Find(ctx, repo, c.tupelo)
 }
 
 func (c *Client) RegisterAsDefault() {

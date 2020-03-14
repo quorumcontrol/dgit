@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/99designs/keyring"
-	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
+	"github.com/quorumcontrol/dgit/keyring"
+	"github.com/quorumcontrol/dgit/msg"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -110,12 +110,10 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			}
 
 			if err == transport.ErrRepositoryNotFound {
-				r.userMessage(MsgRepoNotFound)
-				r.respond("\n")
-				continue
+				return fmt.Errorf(msg.RepoNotFound)
 			}
 
-			if err == transport.ErrEmptyRemoteRepository {
+			if err == transport.ErrEmptyRemoteRepository || len(refs) == 0 {
 				r.respond("\n")
 				continue
 			}
@@ -145,7 +143,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 
 			// if head is empty, use last as default
 			if head == "" {
-				head = listResponse[len(listResponse)-1]
+				head = strings.Split(listResponse[len(listResponse)-1], " ")[1]
 			}
 
 			r.respond("@%s HEAD\n", head)
@@ -172,9 +170,6 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 				Auth:       auth,
 			})
 
-			// // TODO: init repo from user input
-			// // when dgit has webui could do it there too
-			// // should register their user name + repo name
 			if err == transport.ErrRepositoryNotFound {
 				err = nil // reset err back to nil
 				client, err := dgit.Default()
@@ -182,7 +177,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 					return err
 				}
 
-				_, err = client.CreateRepoTree(ctx, endpoint, auth)
+				_, err = client.CreateRepoTree(ctx, endpoint, auth, os.Getenv("DGIT_OBJ_STORAGE"))
 				if err != nil {
 					return err
 				}
@@ -279,7 +274,7 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 	var err error
 
 	if r.keyring == nil {
-		r.keyring, err = NewDefaultKeyring()
+		r.keyring, err = keyring.NewDefault()
 
 		// TODO: if no keyring available, prompt user for dgit password
 		if err != nil {
@@ -287,14 +282,11 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		}
 	}
 
-	privateKey, isNew, err := GetPrivateKey(r.keyring)
-	if err != nil {
-		return nil, err
-	}
-
-	if isNew {
-		keyringProviderName := KeyringPrettyNames[fmt.Sprintf("%T", r.keyring)]
-		r.userMessage(MsgWelcome, keyringProviderName, crypto.PubkeyToAddress(privateKey.PublicKey).String())
+	privateKey, err := keyring.FindPrivateKey(r.keyring)
+	if err == keyring.ErrKeyNotFound {
+		return nil, fmt.Errorf(msg.Parse(msg.PrivateKeyNotFound, map[string]interface{}{
+			"keyringProvider": keyring.Name(r.keyring),
+		}))
 	}
 
 	return dgit.NewPrivateKeyAuth(privateKey), nil

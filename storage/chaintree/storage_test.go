@@ -21,7 +21,7 @@ type StorageSuite struct {
 
 var _ = Suite(&StorageSuite{})
 
-func (s *StorageSuite) SetUpTest(c *C) {
+func (s *StorageSuite) SetUpSuite(c *C) {
 	ctx := context.Background()
 
 	// TODO: replace with mock client rather than local running tupelo docker
@@ -43,5 +43,12 @@ func (s *StorageSuite) SetUpTest(c *C) {
 	c.Assert(err, IsNil)
 
 	s.BaseStorageSuite = test.NewBaseStorageSuite(st)
+}
+
+func (s *StorageSuite) SetUpTest(c *C) {
 	s.BaseStorageSuite.SetUpTest(c)
+}
+
+func (s *StorageSuite) TearDownTest(c *C) {
+	s.BaseStorageSuite.TearDownTest(c)
 }

@@ -8,14 +8,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 	"github.com/stretchr/testify/require"
 	fixtures "gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
@@ -39,10 +40,13 @@ func TestRunnerIntegration(t *testing.T) {
 	key, err := crypto.GenerateKey()
 	require.Nil(t, err)
 
+	// Just a random dgit url
+	endpoint, err := transport.NewEndpoint("dgit://" + crypto.PubkeyToAddress(key.PublicKey).String() + "/test")
+	require.Nil(t, err)
+
 	remoteConfig := &config.RemoteConfig{
 		Name: "dgit-test",
-		// Just a random dgit url
-		URLs: []string{"dgit://" + crypto.PubkeyToAddress(key.PublicKey).String() + "/test"},
+		URLs: []string{endpoint.String()},
 	}
 	require.Nil(t, remoteConfig.Validate())
 
@@ -56,10 +60,13 @@ func TestRunnerIntegration(t *testing.T) {
 	userMsgReader := newTestOutputReader(userMsgReaderPipe)
 	require.NotNil(t, userMsgReader)
 
-	kr := keyring.NewArrayKeyring([]keyring.Item{})
-	_, isNew, err := GetPrivateKey(kr)
+	kr := keyring.NewMemory()
+	_, isNew, err := keyring.FindOrCreatePrivateKey(kr)
 	require.Nil(t, err)
 	require.True(t, isNew)
+
+	// _, err = client.CreateRepoTree(ctx, endpoint, dgit.NewPrivateKeyAuth(pkey), "chaintree")
+	// require.Nil(t, err)
 
 	runner := &Runner{
 		local:   local,

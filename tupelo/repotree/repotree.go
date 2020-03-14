@@ -11,7 +11,7 @@ import (
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 )
 
-var repoSalt = []byte("decentragit-alpha")
+var repoSalt = []byte("decentragit-0.0.0-alpha")
 
 var ErrNotFound = tupelo.ErrNotFound
 
