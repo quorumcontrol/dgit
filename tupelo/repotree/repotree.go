@@ -3,6 +3,7 @@ package repotree
 import (
 	"context"
 	"crypto/ecdsa"
+	"strings"
 	"time"
 
 	"github.com/quorumcontrol/chaintree/chaintree"
@@ -25,7 +26,7 @@ type RepoTreeOptions struct {
 }
 
 func GenesisKey(repo string) (*ecdsa.PrivateKey, error) {
-	return consensus.PassPhraseKey([]byte(repo), repoSalt)
+	return consensus.PassPhraseKey([]byte(strings.ToLower(repo)), repoSalt)
 }
 
 func Did(repo string) (string, error) {
