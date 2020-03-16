@@ -199,6 +199,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			}
 
 			r.respond("ok %s\n", dst)
+			r.respond("\n")
 		case "fetch":
 			splitArgs := strings.Split(args, " ")
 			if len(splitArgs) != 2 {
