@@ -243,9 +243,8 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 		// Connect can be used for upload / receive pack
 		// case "connect":
 		// 	r.respond("fallback\n")
-		case "": // empty line separates commands, return new line to end command
-			r.respond("\n")
-			break
+		case "": // command stream terminated, return out
+			return nil
 		default:
 			return fmt.Errorf("Command '%s' not handled", command)
 		}
