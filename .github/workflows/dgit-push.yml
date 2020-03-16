@@ -1,0 +1,14 @@
+name: dgit push
+on:
+  push:
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Push to dgit
+      uses: quorumcontrol/dgit-github-action@master
+      env:
+        DGIT_PRIVATE_KEY: ${{ secrets.DGIT_PRIVATE_KEY }}
+        DGIT_LOG_LEVEL: debug
