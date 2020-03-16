@@ -3,6 +3,7 @@ package repotree
 import (
 	"context"
 	"crypto/ecdsa"
+	"time"
 
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/chaintree/nodestore"
@@ -76,7 +77,12 @@ func Create(ctx context.Context, opts *RepoTreeOptions) (*consensus.SignedChainT
 		return nil, err
 	}
 
-	txns := []*transactions.Transaction{setOwnershipTxn, repoTxn, configTxn}
+	creationTimestampTxn, err := chaintree.NewSetDataTransaction("dgit/createdAt", time.Now().Unix())
+	if err != nil {
+		return nil, err
+	}
+
+	txns := []*transactions.Transaction{setOwnershipTxn, repoTxn, configTxn, creationTimestampTxn}
 
 	_, err = opts.Client.PlayTransactions(ctx, chainTree, genesisKey, txns)
 	if err != nil {
