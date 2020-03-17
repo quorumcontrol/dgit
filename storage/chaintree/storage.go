@@ -9,9 +9,9 @@ import (
 	"github.com/quorumcontrol/dgit/storage/siaskynet"
 	"github.com/quorumcontrol/dgit/storage/split"
 
-	"gopkg.in/src-d/go-git.v4/plumbing/storer"
-	gitstorage "gopkg.in/src-d/go-git.v4/storage"
-	"gopkg.in/src-d/go-git.v4/storage/memory"
+	"github.com/go-git/go-git/v5/plumbing/storer"
+	gitstorage "github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-git/v5/storage/memory"
 )
 
 var RepoConfigPath = []string{"tree", "data", "dgit", "config"}

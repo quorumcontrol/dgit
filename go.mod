@@ -19,6 +19,9 @@ require (
 	github.com/99designs/keyring v1.1.4
 	github.com/NebulousLabs/go-skynet v0.0.0-20200306163948-8394a3e261ba
 	github.com/ethereum/go-ethereum v1.9.3
+	github.com/go-git/go-billy/v5 v5.0.0
+	github.com/go-git/go-git-fixtures/v4 v4.0.1
+	github.com/go-git/go-git/v5 v5.0.0
 	github.com/ipfs/go-bitswap v0.1.9-0.20191015150653-291b2674f1f1
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ds-flatfs v0.4.0
@@ -35,9 +38,6 @@ require (
 	go.uber.org/zap v1.14.0
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/tools v0.0.0-20200226224502-204d844ad48d // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
-	gopkg.in/src-d/go-billy.v4 v4.3.2
-	gopkg.in/src-d/go-git-fixtures.v3 v3.5.0
-	gopkg.in/src-d/go-git.v4 v4.13.1
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
