@@ -55,25 +55,25 @@ func (s *ObjectStorage) Begin() storer.Transaction {
 	}
 }
 
-func (cot *ObjectTransaction) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
-	return cot.temporal.SetEncodedObject(o)
+func (ot *ObjectTransaction) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	return ot.temporal.SetEncodedObject(o)
 }
 
-func (cot *ObjectTransaction) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
-	return cot.temporal.EncodedObject(t, h)
+func (ot *ObjectTransaction) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	return ot.temporal.EncodedObject(t, h)
 }
 
-func (cot *ObjectTransaction) Commit() error {
-	iter, err := cot.temporal.IterEncodedObjects(plumbing.AnyObject)
+func (ot *ObjectTransaction) Commit() error {
+	iter, err := ot.temporal.IterEncodedObjects(plumbing.AnyObject)
 	if err != nil {
 		return err
 	}
 
 	tupeloTxns := make([]*transactions.Transaction, 0)
 
-	ctStorage, ok := cot.storage.(*ObjectStorage)
+	ctStorage, ok := ot.storage.(*ObjectStorage)
 	if !ok {
-		return fmt.Errorf("could not cast storage to chaintree.ObjectStorage; was %T", cot.storage)
+		return fmt.Errorf("could not cast storage to chaintree.ObjectStorage; was %T", ot.storage)
 	}
 
 	err = iter.ForEach(func(o plumbing.EncodedObject) error {
@@ -97,8 +97,8 @@ func (cot *ObjectTransaction) Commit() error {
 	return nil
 }
 
-func (cot *ObjectTransaction) Rollback() error {
-	cot.temporal = nil
+func (ot *ObjectTransaction) Rollback() error {
+	ot.temporal = nil
 	return nil
 }
 

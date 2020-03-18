@@ -55,38 +55,38 @@ func NewPackWriter(s ChaintreeObjectStorer) *PackWriter {
 	}
 }
 
-func (cpw *PackWriter) Write(p []byte) (n int, err error) {
-	if cpw.closed {
+func (pw *PackWriter) Write(p []byte) (n int, err error) {
+	if pw.closed {
 		return 0, fmt.Errorf("attempt to write to closed ChaintreePackWriter")
 	}
 
-	if cpw.bytes == nil {
+	if pw.bytes == nil {
 		buf := make([]byte, len(p))
-		cpw.bytes = bytes.NewBuffer(buf)
+		pw.bytes = bytes.NewBuffer(buf)
 	} else {
-		cpw.bytes.Grow(len(p))
+		pw.bytes.Grow(len(p))
 	}
 
 	var written int64
-	written, err = io.Copy(cpw.bytes, bytes.NewReader(p))
+	written, err = io.Copy(pw.bytes, bytes.NewReader(p))
 	n = int(written)
 	return
 }
 
-func (cpw *PackWriter) Close() error {
-	cpw.closed = true
-	return cpw.save()
+func (pw *PackWriter) Close() error {
+	pw.closed = true
+	return pw.save()
 }
 
-func (cpw *PackWriter) save() error {
-	if !cpw.closed {
+func (pw *PackWriter) save() error {
+	if !pw.closed {
 		return fmt.Errorf("ChaintreePackWriter should be closed before saving")
 	}
 
-	scanner := packfile.NewScanner(cpw.bytes)
+	scanner := packfile.NewScanner(pw.bytes)
 
 	cpo := &PackfileObserver{
-		storage: cpw.storage,
+		storage: pw.storage,
 	}
 
 	parser, err := packfile.NewParser(scanner, cpo)
@@ -104,54 +104,55 @@ type PackfileObserver struct {
 	storage       ChaintreeObjectStorer
 }
 
-func (cpo *PackfileObserver) OnHeader(_ uint32) error {
+func (po *PackfileObserver) OnHeader(_ uint32) error {
 	return nil
 }
 
-func (cpo *PackfileObserver) OnInflatedObjectHeader(t plumbing.ObjectType, objSize, _ int64) error {
-	if cpo.currentObject != nil {
+func (po *PackfileObserver) OnInflatedObjectHeader(t plumbing.ObjectType, objSize, _ int64) error {
+	if po.currentObject != nil {
 		return fmt.Errorf("got new object header before content was written")
 	}
 
-	cpo.currentObject = &plumbing.MemoryObject{}
-	cpo.currentObject.SetType(t)
-	cpo.currentObject.SetSize(objSize)
+	po.currentObject = &plumbing.MemoryObject{}
+	po.currentObject.SetType(t)
+	po.currentObject.SetSize(objSize)
 
 	return nil
 }
 
-func (cpo *PackfileObserver) OnInflatedObjectContent(_ plumbing.Hash, _ int64, _ uint32, content []byte) error {
-	if cpo.currentObject == nil {
+func (po *PackfileObserver) OnInflatedObjectContent(_ plumbing.Hash, _ int64, _ uint32, content []byte) error {
+	if po.currentObject == nil {
 		return fmt.Errorf("got object content before header")
 	}
 
-	_, err := cpo.currentObject.Write(content)
+	_, err := po.currentObject.Write(content)
 	if err != nil {
 		return err
 	}
 
-	txnStore, ok := cpo.storage.(storer.Transactioner)
+	txnStore, ok := po.storage.(storer.Transactioner)
 	if !ok {
 		return fmt.Errorf("storage does not support transactions")
 	}
 
-	if cpo.currentTxn == nil {
-		cpo.currentTxn = txnStore.Begin()
+	if po.currentTxn == nil {
+		po.currentTxn = txnStore.Begin()
 	}
-	_, err = cpo.currentTxn.SetEncodedObject(cpo.currentObject)
+
+	_, err = po.currentTxn.SetEncodedObject(po.currentObject)
 	if err != nil {
 		return err
 	}
 
-	cpo.currentObject = nil
+	po.currentObject = nil
 
 	return nil
 }
 
-func (cpo *PackfileObserver) OnFooter(_ plumbing.Hash) error {
-	err := cpo.currentTxn.Commit()
+func (po *PackfileObserver) OnFooter(_ plumbing.Hash) error {
+	err := po.currentTxn.Commit()
 
-	cpo.currentTxn = nil
+	po.currentTxn = nil
 
 	return err
 }

@@ -27,6 +27,8 @@ type ObjectStorage struct {
 }
 
 var _ storer.EncodedObjectStorer = (*ObjectStorage)(nil)
+var _ storer.PackfileWriter = (*ObjectStorage)(nil)
+var _ storer.Transactioner = (*ObjectStorage)(nil)
 
 func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	did := config.ChainTree.MustId()
@@ -36,13 +38,32 @@ func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	}
 }
 
-func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
-	s.log.Debugf("saving %s with type %s", o.Hash().String(), o.Type().String())
+type TemporalStorage struct {
+	log      *zap.SugaredLogger
+	skylinks map[plumbing.Hash]string
+}
 
-	if o.Type() == plumbing.OFSDeltaObject || o.Type() == plumbing.REFDeltaObject {
-		return plumbing.ZeroHash, plumbing.ErrInvalidType
+type ChaintreeLinkStorage struct {
+	log *zap.SugaredLogger
+	*storage.Config
+}
+
+func NewTemporalStorage() *TemporalStorage {
+	return &TemporalStorage{
+		log:      log.Named("skynet-temporal"),
+		skylinks: make(map[plumbing.Hash]string),
 	}
+}
 
+func NewChaintreeLinkStorage(config *storage.Config) *ChaintreeLinkStorage {
+	did := config.ChainTree.MustId()
+	return &ChaintreeLinkStorage{
+		log.Named(did[len(did)-6:]),
+		config,
+	}
+}
+
+func uploadObjectToSkynet(o plumbing.EncodedObject) (string, error) {
 	buf := bytes.NewBuffer(nil)
 
 	writer := objfile.NewWriter(buf)
@@ -50,31 +71,176 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 
 	reader, err := o.Reader()
 	if err != nil {
-		return plumbing.ZeroHash, err
+		return "", err
 	}
 
 	if err = writer.WriteHeader(o.Type(), o.Size()); err != nil {
-		return plumbing.ZeroHash, err
+		return "", err
 	}
 
 	if _, err = io.Copy(writer, reader); err != nil {
-		return plumbing.ZeroHash, err
+		return "", err
 	}
-	writer.Close()
 
 	uploadData := make(skynet.UploadData)
 	uploadData[o.Hash().String()] = buf
 
-	s.log.Debugf("uploading %s to Skynet", o.Hash().String())
 	link, err := skynet.Upload(uploadData, skynet.DefaultUploadOptions)
+
+	return link, nil
+}
+
+func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	ts.log.Debugf("uploading %s to Skynet", o.Hash().String())
+
+	link, err := uploadObjectToSkynet(o)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+
+	objHash := o.Hash()
+
+	ts.skylinks[objHash] = link
+
+	return objHash, nil
+}
+
+func downloadObjectFromSkynet(link string) (plumbing.EncodedObject, error) {
+	objData, err := skynet.Download(link, skynet.DefaultDownloadOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	o := &plumbing.MemoryObject{}
+
+	reader, err := objfile.NewReader(objData)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	objType, size, err := reader.Header()
+	if err != nil {
+		return nil, err
+	}
+
+	o.SetType(objType)
+	o.SetSize(size)
+
+	if _, err = io.Copy(o, reader); err != nil {
+		return nil, err
+	}
+
+	return o, nil
+}
+
+func (ts *TemporalStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	link, ok := ts.skylinks[h]
+	if !ok {
+		return nil, plumbing.ErrObjectNotFound
+	}
+
+	o, err := downloadObjectFromSkynet(link)
+	if err != nil {
+		ts.log.Errorf("could not download object %s from Skynet: %w", h, err)
+		return nil, err
+	}
+
+	if plumbing.AnyObject != t && o.Type() != t {
+		ts.log.Debugf("%s not found, mismatched types, expected %s, got %s", h.String(), t.String(), o.Type().String())
+		return nil, plumbing.ErrObjectNotFound
+	}
+
+	return o, nil
+}
+
+type ObjectTransaction struct {
+	temporal *TemporalStorage
+	storage  *ChaintreeLinkStorage
+}
+
+var _ storer.Transaction = (*ObjectTransaction)(nil)
+
+func (s *ObjectStorage) Begin() storer.Transaction {
+	ts := NewTemporalStorage()
+	ls := NewChaintreeLinkStorage(s.Config)
+	return &ObjectTransaction{
+		// NB: Using ts for temporal storage causes it to upload objects to
+		// skynet as they are added to the txn. This makes sense while it's
+		// free, but perhaps less so once it isn't. It still might make sense
+		// perf-wise, but you'd want to clean up on Rollback / error to stop
+		// paying for those uploads.
+		temporal: ts,
+		storage:  ls,
+	}
+}
+
+func (ot *ObjectTransaction) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	return ot.temporal.SetEncodedObject(o)
+}
+
+func (ot *ObjectTransaction) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	return ot.temporal.EncodedObject(t, h)
+}
+
+func (ot *ObjectTransaction) Commit() error {
+	tupeloTxns := make([]*transactions.Transaction, len(ot.temporal.skylinks))
+
+	for h, link := range ot.temporal.skylinks {
+		txn, err := setLinkTxn(h, link)
+		if err != nil {
+			return err
+		}
+
+		tupeloTxns = append(tupeloTxns, txn)
+	}
+
+	ot.storage.log.Debugf("saving Skylinks in transaction to repo chaintree")
+	_, err := ot.storage.Tupelo.PlayTransactions(ot.storage.Ctx, ot.storage.ChainTree, ot.storage.PrivateKey, tupeloTxns)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setLinkTxn(h plumbing.Hash, link string) (*transactions.Transaction, error) {
+	writePath := storage.ObjectWritePath(h)
+
+	txn, err := chaintree.NewSetDataTransaction(writePath, link)
+	if err != nil {
+		return nil, err
+	}
+
+	return txn, nil
+}
+
+func (ot *ObjectTransaction) Rollback() error {
+	ot.temporal = nil
+	return nil
+}
+
+func (s *ObjectStorage) PackfileWriter() (io.WriteCloser, error) {
+	return storage.NewPackWriter(s), nil
+}
+
+func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	s.log.Debugf("saving %s with type %s", o.Hash().String(), o.Type().String())
+
+	if o.Type() == plumbing.OFSDeltaObject || o.Type() == plumbing.REFDeltaObject {
+		return plumbing.ZeroHash, plumbing.ErrInvalidType
+	}
+
+	s.log.Debugf("uploading %s to Skynet", o.Hash().String())
+	link, err := uploadObjectToSkynet(o)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
 
 	skylink := strings.TrimPrefix(link, "sia://")
 	objDid := strings.Join([]string{"did", "sia", skylink}, ":")
 
-	writePath := storage.ObjectWritePath(o.Hash())
-	s.log.Debugf("saving Skylink %s to repo chaintree at %s", link, writePath)
-
-	tx, err := chaintree.NewSetDataTransaction(writePath, objDid)
+	tx, err := setLinkTxn(o.Hash(), objDid)
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -86,8 +252,6 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 
 	return o.Hash(), nil
 }
-
-// TODO: DRY these up with chaintree/object.go
 
 func (s *ObjectStorage) HasEncodedObject(h plumbing.Hash) (err error) {
 	if _, err := s.EncodedObject(plumbing.AnyObject, h); err != nil {
@@ -133,41 +297,19 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 		return nil, plumbing.ErrObjectNotFound
 	}
 
-	skylink := strings.TrimPrefix(objDid, "did:sia:")
+	siaHash := strings.TrimPrefix(objDid, "did:sia:")
+	link := "sia://" + siaHash
 
-	s.log.Debugf("downloading %s from Skynet at sia://%s", h.String(), skylink)
-	data, err := skynet.Download(skylink, skynet.DefaultDownloadOptions)
+	s.log.Debugf("downloading %s from Skynet at %s", h.String(), link)
+	o, err := downloadObjectFromSkynet(link)
 	if err != nil {
-		s.log.Errorf("could not download skylink %s from Skynet: %w", skylink, err)
+		s.log.Errorf("could not download object %s from Skynet at %s: %w", o.Hash(), link, err)
 		return nil, err
 	}
-
-	o := &plumbing.MemoryObject{}
-
-	reader, err := objfile.NewReader(data)
-	if err != nil {
-		s.log.Errorf("new reader error for %s: %w", h.String(), err)
-		return nil, err
-	}
-	defer reader.Close()
-
-	objType, size, err := reader.Header()
-	if err != nil {
-		s.log.Errorf("error decoding header for %s: %v", h.String(), err)
-		return nil, err
-	}
-
-	o.SetType(objType)
-	o.SetSize(size)
 
 	if plumbing.AnyObject != t && o.Type() != t {
 		s.log.Debugf("%s not found, mismatched types, expected %s, got %s", h.String(), t.String(), o.Type().String())
 		return nil, plumbing.ErrObjectNotFound
-	}
-
-	if _, err = io.Copy(o, reader); err != nil {
-		s.log.Errorf("error filling object %s: %v", h.String(), err)
-		return nil, err
 	}
 
 	return o, nil
