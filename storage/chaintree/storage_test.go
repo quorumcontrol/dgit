@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/go-git/go-git/v5/storage/test"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	. "gopkg.in/check.v1"
-	"gopkg.in/src-d/go-git.v4/storage/test"
 
 	"github.com/quorumcontrol/dgit/storage"
 	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
@@ -43,10 +43,6 @@ func (s *StorageSuite) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 
 	s.BaseStorageSuite = test.NewBaseStorageSuite(st)
-}
-
-func (s *StorageSuite) SetUpTest(c *C) {
-	s.BaseStorageSuite.SetUpTest(c)
 }
 
 func (s *StorageSuite) TearDownTest(c *C) {

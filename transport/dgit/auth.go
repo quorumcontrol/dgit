@@ -4,7 +4,7 @@ import (
 	"crypto/ecdsa"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
 const PrivateKeyAuthName = "private-key-auth"

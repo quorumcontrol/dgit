@@ -11,14 +11,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/msg"
 	"github.com/quorumcontrol/dgit/transport/dgit"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/config"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 )
 
 var log = logging.Logger("dgit.runner")

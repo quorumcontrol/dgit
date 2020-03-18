@@ -11,9 +11,9 @@ import (
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport"
-	gitclient "gopkg.in/src-d/go-git.v4/plumbing/transport/client"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	gitclient "github.com/go-git/go-git/v5/plumbing/transport/client"
+	"github.com/go-git/go-git/v5/plumbing/transport/server"
 )
 
 var log = logging.Logger("dgit.client")

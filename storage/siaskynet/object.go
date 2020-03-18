@@ -7,7 +7,7 @@ import (
 
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
-	"gopkg.in/src-d/go-git.v4/plumbing/format/objfile"
+	"github.com/go-git/go-git/v5/plumbing/format/objfile"
 
 	"github.com/quorumcontrol/dgit/storage"
 
@@ -15,8 +15,8 @@ import (
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"go.uber.org/zap"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/storer"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 var log = logging.Logger("dgit.storage.siaskynet")

@@ -9,19 +9,18 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	fixtures "github.com/go-git/go-git-fixtures/v4"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 	"github.com/stretchr/testify/require"
-	fixtures "gopkg.in/src-d/go-git-fixtures.v3"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/config"
-	"gopkg.in/src-d/go-git.v4/plumbing/cache"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
 func TestRunnerIntegration(t *testing.T) {
-	require.Nil(t, fixtures.Init())
 	defer fixtures.Clean()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -98,6 +97,7 @@ func TestRunnerIntegration(t *testing.T) {
 		_, err = gitInputWriter.Write([]byte("push refs/heads/master:refs/heads/master\n"))
 		require.Nil(t, err)
 		gitOutputReader.Expect(t, "ok refs/heads/master\n")
+		gitOutputReader.Expect(t, "\n")
 	})
 
 	t.Run("it can push a branch with different source name", func(t *testing.T) {
@@ -110,6 +110,7 @@ func TestRunnerIntegration(t *testing.T) {
 		_, err = gitInputWriter.Write([]byte("push refs/heads/master:refs/heads/feature/test\n"))
 		require.Nil(t, err)
 		gitOutputReader.Expect(t, "ok refs/heads/feature/test\n")
+		gitOutputReader.Expect(t, "\n")
 	})
 
 	t.Run("it can pull a new branch", func(t *testing.T) {
