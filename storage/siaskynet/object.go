@@ -157,6 +157,7 @@ func (ts *TemporalStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash)
 type ObjectTransaction struct {
 	temporal *TemporalStorage
 	storage  *ChaintreeLinkStorage
+	log      *zap.SugaredLogger
 }
 
 var _ storer.Transaction = (*ObjectTransaction)(nil)
@@ -165,25 +166,30 @@ func (s *ObjectStorage) Begin() storer.Transaction {
 	ts := NewTemporalStorage()
 	ls := NewChaintreeLinkStorage(s.Config)
 	return &ObjectTransaction{
-		// NB: Using ts for temporal storage causes it to upload objects to
+		// NB: Currently TemporalStorage uploads objects to
 		// skynet as they are added to the txn. This makes sense while it's
 		// free, but perhaps less so once it isn't. It still might make sense
 		// perf-wise, but you'd want to clean up on Rollback / error to stop
 		// paying for those uploads.
 		temporal: ts,
 		storage:  ls,
+		log:      s.log.Named("object transaction"),
 	}
 }
 
 func (ot *ObjectTransaction) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	ot.log.Debugf("added object %+v to transaction: %+v", o, ot)
 	return ot.temporal.SetEncodedObject(o)
 }
 
 func (ot *ObjectTransaction) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	ot.log.Debugf("retrieving object %s - %s from transaction: %+v", t, h, ot)
 	return ot.temporal.EncodedObject(t, h)
 }
 
 func (ot *ObjectTransaction) Commit() error {
+	ot.log.Debugf("committing transaction %+v", ot)
+
 	tupeloTxns := make([]*transactions.Transaction, len(ot.temporal.skylinks))
 
 	for h, link := range ot.temporal.skylinks {
@@ -195,7 +201,7 @@ func (ot *ObjectTransaction) Commit() error {
 		tupeloTxns = append(tupeloTxns, txn)
 	}
 
-	ot.storage.log.Debugf("saving Skylinks in transaction to repo chaintree")
+	ot.log.Debugf("saving Skylinks in transaction to repo chaintree")
 	_, err := ot.storage.Tupelo.PlayTransactions(ot.storage.Ctx, ot.storage.ChainTree, ot.storage.PrivateKey, tupeloTxns)
 	if err != nil {
 		return err
@@ -216,11 +222,13 @@ func setLinkTxn(h plumbing.Hash, link string) (*transactions.Transaction, error)
 }
 
 func (ot *ObjectTransaction) Rollback() error {
+	ot.log.Debugf("rolling back transaction %+v", ot)
 	ot.temporal = nil
 	return nil
 }
 
 func (s *ObjectStorage) PackfileWriter() (io.WriteCloser, error) {
+	s.log.Debug("packfile writer requested")
 	return storage.NewPackWriter(s), nil
 }
 
