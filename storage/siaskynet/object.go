@@ -5,13 +5,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-git/go-git/v5/plumbing/format/objfile"
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 
 	"github.com/quorumcontrol/dgit/storage"
 
-	"github.com/NebulousLabs/go-skynet"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	logging "github.com/ipfs/go-log"
@@ -36,7 +34,7 @@ func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	return &ObjectStorage{
 		&storage.ChaintreeObjectStorage{config},
 		log.Named(did[len(did)-6:]),
-		InitSkynet(4, 4),
+		InitSkynet(4, 1),
 	}
 }
 
@@ -58,7 +56,7 @@ func NewTemporalStorage() *TemporalStorage {
 	return &TemporalStorage{
 		log:      log.Named("skynet-temporal"),
 		skylinks: make(SkylinkStore),
-		skynet:   InitSkynet(4, 4),
+		skynet:   InitSkynet(4, 1),
 	}
 }
 
@@ -116,33 +114,15 @@ func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.
 	return objHash, nil
 }
 
-func downloadObjectFromSkynet(link string) (plumbing.EncodedObject, error) {
-	objData, err := skynet.Download(link, skynet.DefaultDownloadOptions)
-	if err != nil {
+func downloadObjectFromSkynet(s *Skynet, link string) (plumbing.EncodedObject, error) {
+	resultC, errC := s.DownloadObject(link)
+
+	select {
+	case err := <- errC:
 		return nil, err
+	case o := <- resultC:
+		return o, nil
 	}
-
-	o := &plumbing.MemoryObject{}
-
-	reader, err := objfile.NewReader(objData)
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-
-	objType, size, err := reader.Header()
-	if err != nil {
-		return nil, err
-	}
-
-	o.SetType(objType)
-	o.SetSize(size)
-
-	if _, err = io.Copy(o, reader); err != nil {
-		return nil, err
-	}
-
-	return o, nil
 }
 
 type ObjectTransaction struct {
@@ -303,7 +283,7 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 	link := strings.Replace(objDid, "did:sia:", "sia://", 1)
 
 	s.log.Debugf("downloading %s from Skynet at %s", h, link)
-	o, err := downloadObjectFromSkynet(link)
+	o, err := downloadObjectFromSkynet(s.skynet, link)
 	if err != nil {
 		s.log.Errorf("could not download object %s from Skynet at %s: %w", o.Hash(), link, err)
 		return nil, err

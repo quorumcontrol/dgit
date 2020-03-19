@@ -86,7 +86,7 @@ func (s *Skynet) startUploader() {
 }
 
 func (s *Skynet) startUploaders() {
-	s.log.Debugf("starting %d uploaders", s.uploaderCount)
+	s.log.Debugf("starting %d uploader(s)", s.uploaderCount)
 
 	for i := 0; i < s.uploaderCount; i++ {
 		go s.startUploader()
@@ -106,6 +106,75 @@ func (s *Skynet) UploadObject(o plumbing.EncodedObject) (chan string, chan error
 
 	s.uploadJobs <- &uploadJob{
 		o:      o,
+		result: result,
+		err:    err,
+	}
+
+	return result, err
+}
+
+func (s *Skynet) downloadObject(link string) (plumbing.EncodedObject, error) {
+	objData, err := skynet.Download(link, skynet.DefaultDownloadOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	o := &plumbing.MemoryObject{}
+
+	reader, err := objfile.NewReader(objData)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	objType, size, err := reader.Header()
+	if err != nil {
+		return nil, err
+	}
+
+	o.SetType(objType)
+	o.SetSize(size)
+
+	if _, err = io.Copy(o, reader); err != nil {
+		return nil, err
+	}
+
+	return o, nil
+}
+
+func (s *Skynet) startDownloader() {
+	for j := range s.downloadJobs {
+		s.log.Debugf("downloading %s from Skynet", j.link)
+		o, err := s.downloadObject(j.link)
+		if err != nil {
+			j.err <- err
+			continue
+		}
+		j.result <- o
+	}
+}
+
+func (s *Skynet) startDownloaders() {
+	s.log.Debugf("starting %d downloader(s)", s.downloaderCount)
+
+	for i := 0; i < s.downloaderCount; i++ {
+		go s.startDownloader()
+	}
+}
+
+func (s *Skynet) DownloadObject(link string) (chan plumbing.EncodedObject, chan error) {
+	s.Lock()
+	if !s.downloadersStarted {
+		s.startDownloaders()
+		s.downloadersStarted = true
+	}
+	s.Unlock()
+
+	result := make(chan plumbing.EncodedObject)
+	err := make(chan error)
+
+	s.downloadJobs <- &downloadJob{
+		link:   link,
 		result: result,
 		err:    err,
 	}
