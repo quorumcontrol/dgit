@@ -168,9 +168,12 @@ func (po *PackfileObserver) OnInflatedObjectContent(h plumbing.Hash, _ int64, _ 
 
 func (po *PackfileObserver) OnFooter(_ plumbing.Hash) error {
 	po.log.Debug("packfile footer; committing current transaction")
-	err := po.currentTxn.Commit()
 
-	po.currentTxn = nil
+	var err error
+	if po.currentTxn != nil {
+		err = po.currentTxn.Commit()
+		po.currentTxn = nil
+	}
 
 	return err
 }
