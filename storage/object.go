@@ -54,7 +54,7 @@ type PackWriter struct {
 
 func NewPackWriter(s ChaintreeObjectStorer) *PackWriter {
 	return &PackWriter{
-		bytes:   nil,
+		bytes:   bytes.NewBuffer(nil),
 		closed:  false,
 		storage: s,
 		log:     log.Named("packwriter"),
@@ -65,13 +65,6 @@ func (pw *PackWriter) Write(p []byte) (n int, err error) {
 	pw.log.Debugf("writing %d bytes", len(p))
 	if pw.closed {
 		return 0, fmt.Errorf("attempt to write to closed ChaintreePackWriter")
-	}
-
-	if pw.bytes == nil {
-		buf := make([]byte, len(p))
-		pw.bytes = bytes.NewBuffer(buf)
-	} else {
-		pw.bytes.Grow(len(p))
 	}
 
 	var written int64
