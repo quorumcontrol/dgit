@@ -3,6 +3,7 @@ package siaskynet
 import (
 	"bytes"
 	"io"
+	"sync"
 
 	"github.com/NebulousLabs/go-skynet"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -23,6 +24,8 @@ type downloadJob struct {
 }
 
 type Skynet struct {
+	sync.RWMutex
+
 	uploaderCount      int
 	downloaderCount    int
 	uploadersStarted   bool
@@ -91,10 +94,12 @@ func (s *Skynet) startUploaders() {
 }
 
 func (s *Skynet) UploadObject(o plumbing.EncodedObject) (chan string, chan error) {
+	s.Lock()
 	if !s.uploadersStarted {
 		s.startUploaders()
 		s.uploadersStarted = true
 	}
+	s.Unlock()
 
 	result := make(chan string)
 	err := make(chan error)
