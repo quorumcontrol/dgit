@@ -175,7 +175,7 @@ func newTestOutputReader(rd io.Reader) *testOutputReader {
 func (r *testOutputReader) Expect(t *testing.T, value string) {
 	line, err := r.ReadString('\n')
 	require.Nil(t, err)
-	require.Equal(t, line, value)
+	require.Equal(t, value, line)
 }
 
 type blockingReader struct {
