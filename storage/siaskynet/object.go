@@ -122,6 +122,8 @@ func downloadObjectFromSkynet(link string) (plumbing.EncodedObject, error) {
 }
 
 func (ts *TemporalStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	ts.log.Debugf("getting object %s - %s", t, h)
+
 	link, ok := ts.skylinks[h]
 	if !ok {
 		return nil, plumbing.ErrObjectNotFound
