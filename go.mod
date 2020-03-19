@@ -21,7 +21,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.3
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git-fixtures/v4 v4.0.1
-	github.com/go-git/go-git/v5 v5.0.0
+	github.com/go-git/go-git/v5 v5.0.1-0.20200319142726-f6305131a06b
 	github.com/ipfs/go-bitswap v0.1.9-0.20191015150653-291b2674f1f1
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ds-flatfs v0.4.0
@@ -36,7 +36,9 @@ require (
 	github.com/stretchr/testify v1.4.0
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.14.0
+	golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6 // indirect
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
+	golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d // indirect
 	golang.org/x/tools v0.0.0-20200226224502-204d844ad48d // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
