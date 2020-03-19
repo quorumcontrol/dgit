@@ -80,14 +80,14 @@ func uploadObjectToSkynet(s *Skynet, o plumbing.EncodedObject) (string, error) {
 func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
 	ts.log.Debugf("uploading %s to Skynet", o.Hash())
 
-	link, err := uploadObjectToSkynet(ts.skynet, o)
-	if err != nil {
-		return plumbing.ZeroHash, err
-	}
-
 	objHash := o.Hash()
 
-	ts.skylinks[objHash] = link
+	go func() {
+		link, err := uploadObjectToSkynet(ts.skynet, o)
+		ts.log.Errorf("object %s upload failed: %w", objHash, err)
+
+		ts.skylinks[objHash] = link
+	}()
 
 	return objHash, nil
 }
