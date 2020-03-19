@@ -3,6 +3,7 @@ package siaskynet
 import (
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/go-git/go-git/v5/plumbing/format/objfile"
 	format "github.com/ipfs/go-ipld-format"
@@ -39,9 +40,12 @@ func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	}
 }
 
+type SkylinkStore map[plumbing.Hash]string
+
 type TemporalStorage struct {
+	sync.RWMutex
 	log      *zap.SugaredLogger
-	skylinks map[plumbing.Hash]string
+	skylinks SkylinkStore
 	skynet   *Skynet
 }
 
@@ -53,9 +57,29 @@ type ChaintreeLinkStorage struct {
 func NewTemporalStorage() *TemporalStorage {
 	return &TemporalStorage{
 		log:      log.Named("skynet-temporal"),
-		skylinks: make(map[plumbing.Hash]string),
+		skylinks: make(SkylinkStore),
 		skynet:   InitSkynet(4, 4),
 	}
+}
+
+func (ts *TemporalStorage) SetSkylink(h plumbing.Hash, link string) {
+	ts.Lock()
+	defer ts.Unlock()
+
+	ts.skylinks[h] = link
+}
+
+func (ts *TemporalStorage) Skylinks() SkylinkStore {
+	sls := make(SkylinkStore)
+
+	ts.RLock()
+	defer ts.RUnlock()
+
+	for h, l := range ts.skylinks {
+		sls[h] = l
+	}
+
+	return sls
 }
 
 func NewChaintreeLinkStorage(config *storage.Config) *ChaintreeLinkStorage {
@@ -86,7 +110,7 @@ func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.
 		link, err := uploadObjectToSkynet(ts.skynet, o)
 		ts.log.Errorf("object %s upload failed: %w", objHash, err)
 
-		ts.skylinks[objHash] = link
+		ts.SetSkylink(objHash, link)
 	}()
 
 	return objHash, nil
@@ -121,28 +145,6 @@ func downloadObjectFromSkynet(link string) (plumbing.EncodedObject, error) {
 	return o, nil
 }
 
-func (ts *TemporalStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
-	ts.log.Debugf("getting object %s - %s", t, h)
-
-	link, ok := ts.skylinks[h]
-	if !ok {
-		return nil, plumbing.ErrObjectNotFound
-	}
-
-	o, err := downloadObjectFromSkynet(link)
-	if err != nil {
-		ts.log.Errorf("could not download object %s from Skynet: %w", h, err)
-		return nil, err
-	}
-
-	if plumbing.AnyObject != t && o.Type() != t {
-		ts.log.Debugf("%s not found, mismatched types, expected %s, got %s", h, t, o.Type())
-		return nil, plumbing.ErrObjectNotFound
-	}
-
-	return o, nil
-}
-
 type ObjectTransaction struct {
 	temporal *TemporalStorage
 	storage  *ChaintreeLinkStorage
@@ -172,8 +174,8 @@ func (ot *ObjectTransaction) SetEncodedObject(o plumbing.EncodedObject) (plumbin
 }
 
 func (ot *ObjectTransaction) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
-	ot.log.Debugf("retrieving object %s - %s from transaction", t, h)
-	return ot.temporal.EncodedObject(t, h)
+	ot.log.Errorf("ObjectTransaction.EncodedObject is a stub to satisfy the interface; don't call it")
+	return &plumbing.MemoryObject{}, nil
 }
 
 func (ot *ObjectTransaction) Commit() error {
@@ -181,7 +183,9 @@ func (ot *ObjectTransaction) Commit() error {
 
 	var tupeloTxns []*transactions.Transaction
 
-	for h, link := range ot.temporal.skylinks {
+	skylinks := ot.temporal.Skylinks()
+
+	for h, link := range skylinks {
 		txn, err := setLinkTxn(h, strings.Replace(link, "sia://", "did:sia:", 1))
 		if err != nil {
 			return err
@@ -190,8 +194,8 @@ func (ot *ObjectTransaction) Commit() error {
 		tupeloTxns = append(tupeloTxns, txn)
 	}
 
-	if len(ot.temporal.skylinks) > 0 {
-		ot.log.Debugf("saving %d Skylinks in transaction to repo chaintree", len(ot.temporal.skylinks))
+	if len(skylinks) > 0 {
+		ot.log.Debugf("saving %d Skylinks in transaction to repo chaintree", len(skylinks))
 		_, err := ot.storage.Tupelo.PlayTransactions(ot.storage.Ctx, ot.storage.ChainTree, ot.storage.PrivateKey, tupeloTxns)
 		if err != nil {
 			return err
