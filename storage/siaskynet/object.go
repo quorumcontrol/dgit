@@ -1,7 +1,6 @@
 package siaskynet
 
 import (
-	"bytes"
 	"io"
 	"strings"
 
@@ -23,7 +22,8 @@ var log = logging.Logger("dgit.storage.siaskynet")
 
 type ObjectStorage struct {
 	*storage.ChaintreeObjectStorage
-	log *zap.SugaredLogger
+	log    *zap.SugaredLogger
+	skynet *Skynet
 }
 
 var _ storer.EncodedObjectStorer = (*ObjectStorage)(nil)
@@ -35,12 +35,14 @@ func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	return &ObjectStorage{
 		&storage.ChaintreeObjectStorage{config},
 		log.Named(did[len(did)-6:]),
+		InitSkynet(4, 4),
 	}
 }
 
 type TemporalStorage struct {
 	log      *zap.SugaredLogger
 	skylinks map[plumbing.Hash]string
+	skynet   *Skynet
 }
 
 type ChaintreeLinkStorage struct {
@@ -52,6 +54,7 @@ func NewTemporalStorage() *TemporalStorage {
 	return &TemporalStorage{
 		log:      log.Named("skynet-temporal"),
 		skylinks: make(map[plumbing.Hash]string),
+		skynet:   InitSkynet(4, 4),
 	}
 }
 
@@ -63,37 +66,21 @@ func NewChaintreeLinkStorage(config *storage.Config) *ChaintreeLinkStorage {
 	}
 }
 
-func uploadObjectToSkynet(o plumbing.EncodedObject) (string, error) {
-	buf := bytes.NewBuffer(nil)
+func uploadObjectToSkynet(s *Skynet, o plumbing.EncodedObject) (string, error) {
+	resultC, errC := s.UploadObject(o)
 
-	writer := objfile.NewWriter(buf)
-	defer writer.Close()
-
-	reader, err := o.Reader()
-	if err != nil {
+	select {
+	case err := <-errC:
 		return "", err
+	case link := <-resultC:
+		return link, nil
 	}
-
-	if err = writer.WriteHeader(o.Type(), o.Size()); err != nil {
-		return "", err
-	}
-
-	if _, err = io.Copy(writer, reader); err != nil {
-		return "", err
-	}
-
-	uploadData := make(skynet.UploadData)
-	uploadData[o.Hash().String()] = buf
-
-	link, err := skynet.Upload(uploadData, skynet.DefaultUploadOptions)
-
-	return link, nil
 }
 
 func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
 	ts.log.Debugf("uploading %s to Skynet", o.Hash())
 
-	link, err := uploadObjectToSkynet(o)
+	link, err := uploadObjectToSkynet(ts.skynet, o)
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
@@ -242,7 +229,7 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 	}
 
 	s.log.Debugf("uploading %s to Skynet", o.Hash().String())
-	link, err := uploadObjectToSkynet(o)
+	link, err := uploadObjectToSkynet(s.skynet, o)
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
