@@ -69,6 +69,11 @@ func (pw *PackWriter) Write(p []byte) (n int, err error) {
 
 	var written int64
 	written, err = io.Copy(pw.bytes, bytes.NewReader(p))
+
+	if written != int64(len(p)) {
+		pw.log.Warnf("got %d bytes but wrote %d", len(p), written)
+	}
+
 	n = int(written)
 	return
 }
