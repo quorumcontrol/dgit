@@ -155,7 +155,7 @@ func (po *PackfileObserver) OnInflatedObjectContent(h plumbing.Hash, _ int64, _ 
 		po.currentTxn = txnStore.Begin()
 	}
 
-	po.log.Debugf("adding current object to transaction: %+v", po.currentObject)
+	po.log.Debugf("adding current object to transaction")
 	_, err = po.currentTxn.SetEncodedObject(po.currentObject)
 	if err != nil {
 		return err
