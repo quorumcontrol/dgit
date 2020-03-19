@@ -5,18 +5,18 @@ import (
 	"io"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing/format/objfile"
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
-	"github.com/go-git/go-git/v5/plumbing/format/objfile"
 
 	"github.com/quorumcontrol/dgit/storage"
 
 	"github.com/NebulousLabs/go-skynet"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"go.uber.org/zap"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 var log = logging.Logger("dgit.storage.siaskynet")
@@ -91,7 +91,7 @@ func uploadObjectToSkynet(o plumbing.EncodedObject) (string, error) {
 }
 
 func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
-	ts.log.Debugf("uploading %s to Skynet", o.Hash().String())
+	ts.log.Debugf("uploading %s to Skynet", o.Hash())
 
 	link, err := uploadObjectToSkynet(o)
 	if err != nil {
@@ -147,7 +147,7 @@ func (ts *TemporalStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash)
 	}
 
 	if plumbing.AnyObject != t && o.Type() != t {
-		ts.log.Debugf("%s not found, mismatched types, expected %s, got %s", h.String(), t.String(), o.Type().String())
+		ts.log.Debugf("%s not found, mismatched types, expected %s, got %s", h, t, o.Type())
 		return nil, plumbing.ErrObjectNotFound
 	}
 
@@ -178,22 +178,22 @@ func (s *ObjectStorage) Begin() storer.Transaction {
 }
 
 func (ot *ObjectTransaction) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
-	ot.log.Debugf("added object %+v to transaction: %+v", o, ot)
+	ot.log.Debugf("added object %s to transaction", o.Hash())
 	return ot.temporal.SetEncodedObject(o)
 }
 
 func (ot *ObjectTransaction) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
-	ot.log.Debugf("retrieving object %s - %s from transaction: %+v", t, h, ot)
+	ot.log.Debugf("retrieving object %s - %s from transaction", t, h)
 	return ot.temporal.EncodedObject(t, h)
 }
 
 func (ot *ObjectTransaction) Commit() error {
-	ot.log.Debugf("committing transaction %+v", ot)
+	ot.log.Debugf("committing transaction")
 
-	tupeloTxns := make([]*transactions.Transaction, len(ot.temporal.skylinks))
+	var tupeloTxns []*transactions.Transaction
 
 	for h, link := range ot.temporal.skylinks {
-		txn, err := setLinkTxn(h, link)
+		txn, err := setLinkTxn(h, strings.Replace(link, "sia://", "did:sia:", 1))
 		if err != nil {
 			return err
 		}
@@ -201,10 +201,12 @@ func (ot *ObjectTransaction) Commit() error {
 		tupeloTxns = append(tupeloTxns, txn)
 	}
 
-	ot.log.Debugf("saving Skylinks in transaction to repo chaintree")
-	_, err := ot.storage.Tupelo.PlayTransactions(ot.storage.Ctx, ot.storage.ChainTree, ot.storage.PrivateKey, tupeloTxns)
-	if err != nil {
-		return err
+	if len(ot.temporal.skylinks) > 0 {
+		ot.log.Debugf("saving %d Skylinks in transaction to repo chaintree", len(ot.temporal.skylinks))
+		_, err := ot.storage.Tupelo.PlayTransactions(ot.storage.Ctx, ot.storage.ChainTree, ot.storage.PrivateKey, tupeloTxns)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -222,7 +224,7 @@ func setLinkTxn(h plumbing.Hash, link string) (*transactions.Transaction, error)
 }
 
 func (ot *ObjectTransaction) Rollback() error {
-	ot.log.Debugf("rolling back transaction %+v", ot)
+	ot.log.Debugf("rolling back transaction")
 	ot.temporal = nil
 	return nil
 }
@@ -281,15 +283,15 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 
 	valUncast, _, err := s.ChainTree.ChainTree.Dag.Resolve(s.Ctx, storage.ObjectReadPath(h))
 	if err == format.ErrNotFound {
-		s.log.Debugf("%s not found", h.String())
+		s.log.Debugf("%s not found", h)
 		return nil, plumbing.ErrObjectNotFound
 	}
 	if err != nil {
-		s.log.Errorf("chaintree resolve error for %s: %w", h.String(), err)
+		s.log.Errorf("chaintree resolve error for %s: %w", h, err)
 		return nil, err
 	}
 	if valUncast == nil {
-		s.log.Debugf("%s not found", h.String())
+		s.log.Debugf("%s not found", h)
 		return nil, plumbing.ErrObjectNotFound
 	}
 
@@ -305,10 +307,9 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 		return nil, plumbing.ErrObjectNotFound
 	}
 
-	siaHash := strings.TrimPrefix(objDid, "did:sia:")
-	link := "sia://" + siaHash
+	link := strings.Replace(objDid, "did:sia:", "sia://", 1)
 
-	s.log.Debugf("downloading %s from Skynet at %s", h.String(), link)
+	s.log.Debugf("downloading %s from Skynet at %s", h, link)
 	o, err := downloadObjectFromSkynet(link)
 	if err != nil {
 		s.log.Errorf("could not download object %s from Skynet at %s: %w", o.Hash(), link, err)
@@ -316,7 +317,7 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 	}
 
 	if plumbing.AnyObject != t && o.Type() != t {
-		s.log.Debugf("%s not found, mismatched types, expected %s, got %s", h.String(), t.String(), o.Type().String())
+		s.log.Debugf("%s not found, mismatched types, expected %s, got %s", h, t, o.Type())
 		return nil, plumbing.ErrObjectNotFound
 	}
 
