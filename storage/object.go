@@ -57,7 +57,7 @@ func NewPackWriter(s ChaintreeObjectStorer) *PackWriter {
 		bytes:   nil,
 		closed:  false,
 		storage: s,
-		log:     log.Named("pack writer"),
+		log:     log.Named("packwriter"),
 	}
 }
 
@@ -96,7 +96,7 @@ func (pw *PackWriter) save() error {
 
 	po := &PackfileObserver{
 		storage: pw.storage,
-		log:     pw.log.Named("packfile observer"),
+		log:     pw.log.Named("packfile-observer"),
 	}
 
 	parser, err := packfile.NewParser(scanner, po)

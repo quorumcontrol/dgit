@@ -173,7 +173,7 @@ func (s *ObjectStorage) Begin() storer.Transaction {
 		// paying for those uploads.
 		temporal: ts,
 		storage:  ls,
-		log:      s.log.Named("object transaction"),
+		log:      s.log.Named("object-transaction"),
 	}
 }
 
