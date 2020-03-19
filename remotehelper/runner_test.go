@@ -15,10 +15,19 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	logging "github.com/ipfs/go-log"
+	"github.com/stretchr/testify/require"
+
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/transport/dgit"
-	"github.com/stretchr/testify/require"
 )
+
+func init() {
+	err := logging.SetLogLevelRegex("dgit.*", "DEBUG")
+	if err != nil {
+		panic("could not set log level to DEBUG")
+	}
+}
 
 func TestRunnerIntegration(t *testing.T) {
 	defer fixtures.Clean()

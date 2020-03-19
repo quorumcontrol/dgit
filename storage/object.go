@@ -91,7 +91,8 @@ func (pw *PackWriter) save() error {
 		return fmt.Errorf("ChaintreePackWriter should be closed before saving")
 	}
 
-	scanner := packfile.NewScanner(pw.bytes)
+	// packfile parser needs a seekable Reader, so we can't just pass it pw.bytes
+	scanner := packfile.NewScanner(bytes.NewReader(pw.bytes.Bytes()))
 
 	po := &PackfileObserver{
 		storage: pw.storage,

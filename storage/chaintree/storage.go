@@ -3,11 +3,13 @@ package chaintree
 import (
 	"context"
 	"fmt"
+	"io"
 
+	"github.com/go-git/go-git/v5/config"
 	"github.com/quorumcontrol/chaintree/dag"
+
 	"github.com/quorumcontrol/dgit/storage"
 	"github.com/quorumcontrol/dgit/storage/siaskynet"
-	"github.com/quorumcontrol/dgit/storage/split"
 
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	gitstorage "github.com/go-git/go-git/v5/storage"
@@ -17,6 +19,14 @@ import (
 var RepoConfigPath = []string{"tree", "data", "dgit", "config"}
 
 const defaultStorageProvider = "chaintree"
+
+type ChaintreeStorage struct {
+	storer.EncodedObjectStorer
+	storer.ReferenceStorer
+	storer.ShallowStorer
+	storer.IndexStorer
+	config.ConfigStorer
+}
 
 func NewStorage(config *storage.Config) (gitstorage.Storer, error) {
 	ctx := context.Background()
@@ -37,13 +47,17 @@ func NewStorage(config *storage.Config) (gitstorage.Storer, error) {
 		return nil, fmt.Errorf("unknown object storage type: %s", objStorageProvider)
 	}
 
-	return split.NewStorage(&split.StorageMap{
-		ObjectStorage:    objStorage,
-		ShallowStorage:   memory.NewStorage(),
-		ReferenceStorage: NewReferenceStorage(config),
-		IndexStorage:     memory.NewStorage(),
-		ConfigStorage:    memory.NewStorage(),
-	}), nil
+	return &ChaintreeStorage{
+		objStorage,
+		NewReferenceStorage(config),
+		memory.NewStorage(),
+		memory.NewStorage(),
+		memory.NewStorage(),
+	}, nil
+}
+
+func (s *ChaintreeStorage) Module(_ string) (gitstorage.Storer, error) {
+	return nil, fmt.Errorf("ChaintreeStorage.Module not implemented")
 }
 
 func getObjectStorageProvider(ctx context.Context, dag *dag.Dag) (string, error) {
@@ -80,4 +94,13 @@ func getObjectStorageProvider(ctx context.Context, dag *dag.Dag) (string, error)
 	}
 
 	return objStorageType, nil
+}
+
+func (s *ChaintreeStorage) PackfileWriter() (io.WriteCloser, error) {
+	pw, ok := s.EncodedObjectStorer.(storer.PackfileWriter)
+	if !ok {
+		return nil, fmt.Errorf("could not cast object storer to packfile writer")
+	}
+
+	return pw.PackfileWriter()
 }
