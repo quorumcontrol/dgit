@@ -113,6 +113,26 @@ func TestRunnerIntegration(t *testing.T) {
 		gitOutputReader.Expect(t, "\n")
 	})
 
+	t.Run("it can delete a branch", func(t *testing.T) {
+		_, err = gitInputWriter.Write([]byte("list for-push\n"))
+		require.Nil(t, err)
+		gitOutputReader.Expect(t, "@refs/heads/master HEAD\n")
+		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/feature/test\n")
+		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/master\n")
+		gitOutputReader.Expect(t, "\n")
+
+		_, err = gitInputWriter.Write([]byte("push :refs/heads/feature/test\n"))
+		require.Nil(t, err)
+		gitOutputReader.Expect(t, "ok refs/heads/feature/test\n")
+		gitOutputReader.Expect(t, "\n")
+
+		_, err = gitInputWriter.Write([]byte("list\n"))
+		require.Nil(t, err)
+		gitOutputReader.Expect(t, "@refs/heads/master HEAD\n")
+		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/master\n")
+		gitOutputReader.Expect(t, "\n")
+	})
+
 	t.Run("it can pull a new branch", func(t *testing.T) {
 		// create a second repo with different commits
 		secondRepoFs := fixtures.Basic()[2].DotGit()
@@ -139,7 +159,6 @@ func TestRunnerIntegration(t *testing.T) {
 		_, err = gitInputWriter.Write([]byte("list\n"))
 		require.Nil(t, err)
 		gitOutputReader.Expect(t, "@refs/heads/master HEAD\n")
-		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/feature/test\n")
 		gitOutputReader.Expect(t, "6ecf0ef2c2dffb796033e5a02219af86ec6584e5 refs/heads/master\n")
 		gitOutputReader.Expect(t, "1980fcf55330d9d94c34abee5ab734afecf96aba refs/heads/second-repo-master\n")
 	})
