@@ -241,6 +241,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 				return err
 			}
 			log.Debugf("fetch complete")
+			r.respond("\n")
 		// Connect can be used for upload / receive pack
 		// case "connect":
 		// 	r.respond("fallback\n")
