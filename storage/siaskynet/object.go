@@ -42,6 +42,8 @@ type SkylinkStore map[plumbing.Hash]string
 
 type TemporalStorage struct {
 	sync.RWMutex
+	uploadWaitGroup sync.WaitGroup
+
 	log      *zap.SugaredLogger
 	skylinks SkylinkStore
 	skynet   *Skynet
@@ -104,6 +106,7 @@ func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.
 
 	objHash := o.Hash()
 
+	ts.uploadWaitGroup.Add(1)
 	go func() {
 		link, err := uploadObjectToSkynet(ts.skynet, o)
 		if err != nil {
@@ -112,6 +115,8 @@ func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.
 		}
 
 		ts.SetSkylink(objHash, link)
+
+		ts.uploadWaitGroup.Done()
 	}()
 
 	return objHash, nil
@@ -166,6 +171,8 @@ func (ot *ObjectTransaction) Commit() error {
 
 	var tupeloTxns []*transactions.Transaction
 
+	// make sure all pending uploads have completed and set their skylinks
+	ot.temporal.uploadWaitGroup.Wait()
 	skylinks := ot.temporal.Skylinks()
 
 	for h, link := range skylinks {
