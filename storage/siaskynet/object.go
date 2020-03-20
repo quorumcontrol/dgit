@@ -106,7 +106,10 @@ func (ts *TemporalStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.
 
 	go func() {
 		link, err := uploadObjectToSkynet(ts.skynet, o)
-		ts.log.Errorf("object %s upload failed: %w", objHash, err)
+		if err != nil {
+			ts.log.Errorf("object %s upload failed: %w", objHash, err)
+			return
+		}
 
 		ts.SetSkylink(objHash, link)
 	}()
