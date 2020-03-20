@@ -257,9 +257,10 @@ func (s *ObjectStorage) EncodedObjectSize(h plumbing.Hash) (size int64, err erro
 func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
 	s.log.Debugf("fetching %s with type %s", h.String(), t.String())
 
-	valUncast, _, err := s.ChainTree.ChainTree.Dag.Resolve(s.Ctx, storage.ObjectReadPath(h))
+	path := storage.ObjectReadPath(h)
+	valUncast, _, err := s.ChainTree.ChainTree.Dag.Resolve(s.Ctx, path)
 	if err == format.ErrNotFound {
-		s.log.Debugf("%s not found", h)
+		s.log.Debugf("%s not found in chaintree at path %s", h, path)
 		return nil, plumbing.ErrObjectNotFound
 	}
 	if err != nil {
@@ -267,7 +268,7 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 		return nil, err
 	}
 	if valUncast == nil {
-		s.log.Debugf("%s not found", h)
+		s.log.Debugf("%s was nil in chaintree at path %s", h, path)
 		return nil, plumbing.ErrObjectNotFound
 	}
 
