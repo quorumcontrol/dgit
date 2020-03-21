@@ -1,11 +1,17 @@
 gosources = $(shell find . -type f -name '*.go' -print)
 
 FIRSTGOPATH = $(firstword $(subst :, ,$(GOPATH)))
+HEAD_TAG := $(shell git tag --points-at HEAD)
+GIT_REV := $(shell git rev-parse --short HEAD)
+VERSION := $(or $(HEAD_TAG),$(GIT_REV))
+DEV_VERSION := $(shell git diff-index --quiet HEAD || echo "${VERSION}-dev")
+GOLDFLAGS += -X main.Version=$(or $(DEV_VERSION),$(VERSION))
+GOFLAGS = -ldflags "$(GOLDFLAGS)"
 
 all: build
 
 dgit: go.mod go.sum $(gosources)
-	go build -o dgit
+	go build -o dgit $(GOFLAGS) .
 
 build: dgit
 
