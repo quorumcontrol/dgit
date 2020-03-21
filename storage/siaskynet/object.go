@@ -172,7 +172,10 @@ func (ot *ObjectTransaction) Commit() error {
 	var tupeloTxns []*transactions.Transaction
 
 	// make sure all pending uploads have completed and set their skylinks
+	ot.log.Debugf("waiting for all Skynet uploads to complete")
 	ot.temporal.uploadWaitGroup.Wait()
+	ot.log.Debugf("Skynet uploads complete")
+
 	skylinks := ot.temporal.Skylinks()
 
 	for h, link := range skylinks {
