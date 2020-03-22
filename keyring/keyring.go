@@ -76,8 +76,6 @@ func FindPrivateKey(kr Keyring) (key *ecdsa.PrivateKey, err error) {
 }
 
 func FindOrCreatePrivateKey(kr Keyring) (key *ecdsa.PrivateKey, isNew bool, err error) {
-	keyName := "default"
-
 	privateKey, err := FindPrivateKey(kr)
 	if err == nil {
 		return privateKey, false, nil
