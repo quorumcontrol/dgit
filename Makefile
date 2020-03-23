@@ -1,11 +1,12 @@
 gosources = $(shell find . -type f -name '*.go' -print)
 
 FIRSTGOPATH = $(firstword $(subst :, ,$(GOPATH)))
-HEAD_TAG := $(shell git tag --points-at HEAD)
-GIT_REV := $(shell git rev-parse --short HEAD)
-VERSION := $(or $(HEAD_TAG),$(GIT_REV))
-DEV_VERSION := $(shell git diff-index --quiet HEAD || echo "${VERSION}-dev")
-GOLDFLAGS += -X main.Version=$(or $(DEV_VERSION),$(VERSION))
+HEAD_TAG := $(shell if [ -d .git ]; then git tag --points-at HEAD; fi)
+GIT_REV := $(shell if [ -d .git ]; then git rev-parse --short HEAD; fi)
+GIT_VERSION := $(or $(HEAD_TAG),$(GIT_REV))
+DEV_VERSION := $(shell if [ -d .git ]; then git diff-index --quiet HEAD || echo "${GIT_VERSION}-dev"; fi)
+VERSION ?= $(or $(DEV_VERSION),$(GIT_VERSION))
+GOLDFLAGS += -X main.Version=$(VERSION)
 GOFLAGS = -ldflags "$(GOLDFLAGS)"
 
 all: build
