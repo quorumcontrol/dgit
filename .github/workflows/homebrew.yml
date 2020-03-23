@@ -16,8 +16,13 @@ jobs:
       - name: update release in formula
         run: |
           cd Formula
+
+          # set version
+          echo "version: \"${{ github.event.release.tag_name }}\"" > dgit.yml
+
+          # set SHA256 sum of source tarball
           export SHASUM=$(curl -L ${{ github.event.release.tarball_url }} | sha256sum | awk '{print $1}')
-          echo -e "url: \"${{ github.event.release.tarball_url }}\"\nsha256: \"${SHASUM}\"" > dgit.yml
+          echo -e "url: \"${{ github.event.release.tarball_url }}\"\nsha256: \"${SHASUM}\"" >> dgit.yml
 
           # update bottles root_url
           echo -e "bottles:\n  root_url: \"https://github.com/quorumcontrol/dgit/releases/download/${{ github.event.release.tag_name }}\"" >> dgit.yml
