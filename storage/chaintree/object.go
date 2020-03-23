@@ -8,44 +8,112 @@ import (
 
 	"github.com/quorumcontrol/dgit/storage"
 
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/objfile"
+	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/go-git/go-git/v5/storage/memory"
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"go.uber.org/zap"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/format/objfile"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 var log = logging.Logger("dgit.storage.chaintree")
 
 type ObjectStorage struct {
 	*storage.ChaintreeObjectStorage
-	log *zap.SugaredLogger
+	log            *zap.SugaredLogger
+	packfileWriter io.WriteCloser
 }
 
 var _ storage.ChaintreeObjectStorer = (*ObjectStorage)(nil)
+var _ storer.PackfileWriter = (*ObjectStorage)(nil)
+var _ storer.Transactioner = (*ObjectStorage)(nil)
 
 func NewObjectStorage(config *storage.Config) storer.EncodedObjectStorer {
 	did := config.ChainTree.MustId()
 	return &ObjectStorage{
 		&storage.ChaintreeObjectStorage{config},
 		log.Named(did[len(did)-6:]),
+		nil,
 	}
 }
 
-// TODO: implement PackfileWriter() for batch SetEncodedObject
+type ObjectTransaction struct {
+	temporal storer.EncodedObjectStorer
+	storage  storer.EncodedObjectStorer
+}
 
-func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+var _ storer.Transaction = (*ObjectTransaction)(nil)
+
+func (s *ObjectStorage) Begin() storer.Transaction {
+	return &ObjectTransaction{
+		temporal: memory.NewStorage(),
+		storage:  s,
+	}
+}
+
+func (ot *ObjectTransaction) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	return ot.temporal.SetEncodedObject(o)
+}
+
+func (ot *ObjectTransaction) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	return ot.temporal.EncodedObject(t, h)
+}
+
+func (ot *ObjectTransaction) Commit() error {
+	iter, err := ot.temporal.IterEncodedObjects(plumbing.AnyObject)
+	if err != nil {
+		return err
+	}
+
+	tupeloTxns := make([]*transactions.Transaction, 0)
+
+	ctStorage, ok := ot.storage.(*ObjectStorage)
+	if !ok {
+		return fmt.Errorf("could not cast storage to chaintree.ObjectStorage; was %T", ot.storage)
+	}
+
+	err = iter.ForEach(func(o plumbing.EncodedObject) error {
+		tupeloTxn, err := ctStorage.SetEncodedObjectTxn(o)
+		if err != nil {
+			return err
+		}
+
+		tupeloTxns = append(tupeloTxns, tupeloTxn)
+
+		return nil
+	})
+
+	if len(tupeloTxns) > 0 {
+		_, err = ctStorage.Tupelo.PlayTransactions(ctStorage.Ctx, ctStorage.ChainTree, ctStorage.PrivateKey, tupeloTxns)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ot *ObjectTransaction) Rollback() error {
+	ot.temporal = nil
+	return nil
+}
+
+func (s *ObjectStorage) PackfileWriter() (io.WriteCloser, error) {
+	return storage.NewPackWriter(s), nil
+}
+
+func (s *ObjectStorage) SetEncodedObjectTxn(o plumbing.EncodedObject) (*transactions.Transaction, error) {
 	s.log.Debugf("saving %s with type %s", o.Hash().String(), o.Type().String())
 
 	if s.PrivateKey == nil {
-		return plumbing.ZeroHash, fmt.Errorf("Must specify treeKey during NewObjectStorage init")
+		return nil, fmt.Errorf("Must specify treeKey during NewObjectStorage init")
 	}
 
 	if o.Type() == plumbing.OFSDeltaObject || o.Type() == plumbing.REFDeltaObject {
-		return plumbing.ZeroHash, plumbing.ErrInvalidType
+		return nil, plumbing.ErrInvalidType
 	}
 
 	buf := bytes.NewBuffer(nil)
@@ -55,29 +123,37 @@ func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Has
 
 	reader, err := o.Reader()
 	if err != nil {
-		return plumbing.ZeroHash, err
+		return nil, err
 	}
 	defer reader.Close()
 
 	if err := writer.WriteHeader(o.Type(), o.Size()); err != nil {
-		return plumbing.ZeroHash, err
+		return nil, err
 	}
 
 	if _, err = io.Copy(writer, reader); err != nil {
-		return plumbing.ZeroHash, err
+		return nil, err
 	}
 	writer.Close()
 
 	objectBytes, err := ioutil.ReadAll(buf)
 	if err != nil {
-		return plumbing.ZeroHash, err
+		return nil, err
 	}
 
-	// TODO: batch these, see PackfileWriter()
 	// TODO: save each git object as cid
 	//   currently objects/sha1[0:2]/ is a map with { sha1[2:] => cbor bytes }
 	//   should be objects/sha1[0:2]/ is a map with { sha1[2:] => cid }
 	transaction, err := chaintree.NewSetDataTransaction(storage.ObjectWritePath(o.Hash()), objectBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return transaction, nil
+}
+
+func (s *ObjectStorage) SetEncodedObject(o plumbing.EncodedObject) (plumbing.Hash, error) {
+	transaction, err := s.SetEncodedObjectTxn(o)
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}

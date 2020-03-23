@@ -15,9 +15,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/stretchr/testify/require"
+
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/transport/dgit"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRunnerIntegration(t *testing.T) {
@@ -175,7 +176,7 @@ func newTestOutputReader(rd io.Reader) *testOutputReader {
 func (r *testOutputReader) Expect(t *testing.T, value string) {
 	line, err := r.ReadString('\n')
 	require.Nil(t, err)
-	require.Equal(t, line, value)
+	require.Equal(t, value, line)
 }
 
 type blockingReader struct {
