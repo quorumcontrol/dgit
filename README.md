@@ -89,6 +89,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Hop into our developer chat on Telegram: https://t.me/joinchat/IhpojEWjbW9Y7_H81Y7rAA
+If you have any questions or concerns please (hop into our developer chat)[https://gitter.im/quorumcontrol-dgit/community] 
+on gitter and we will be glad to help. 
 
 Project Link: [https://github.com/quorumcontrol/dgit](https://github.com/quorumcontrol/dgit)
