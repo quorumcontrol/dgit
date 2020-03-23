@@ -12,8 +12,8 @@
   <h3 align="center">dgit</h3>
 
   <p align="center">
-    <b>dgit</b> is an open-source project built by [Quorum Control](https://www.tupelo.org/) which combines
-    the power of <br>git, the [Tupelo DLT](https://docs.tupelo.org/) and [Skynet](https://siasky.net/) from Sia.  <br>
+    <b>dgit</b> is an open-source project built by <a href="https://www.tupelo.org/">Quorum Control</a> which combines
+    the power of <br>git, the <a href="https://docs.tupelo.org/">Tupelo DLT</a> and <a href="https://siasky.net/">Skynet</a> from Sia.  <br>
     <b>dgit</b> uses decentralized ownership and storage to make it trivial to
     create a decentralized, shareable git remote of your project.<br>
     <b>dgit</b> accomplishes this without changing your GitHub workflow except that you can keep collaborating when it goes down.<br>
