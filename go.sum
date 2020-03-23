@@ -792,6 +792,8 @@ github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9 h1:7Rl0E
 github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9/go.mod h1:PHUsyPwSBW+m9cuE5isdhJ8ZnSkFRqD6qQo4Oxva2Yw=
 github.com/quorumcontrol/go-skynet v0.0.0-20200312164139-76fb137005c8 h1:X6zp2hKwK51po/w5z+XmKtR2sBijGD7tWHoIEobzpKw=
 github.com/quorumcontrol/go-skynet v0.0.0-20200312164139-76fb137005c8/go.mod h1:0uHjJYR8J4VnAixlHTaMyonV0F8pZc2qRNUR6gvDHYc=
+github.com/quorumcontrol/keyring v1.1.5-0.20200322160512-e16c51dc2ded h1:OaePmiZHxMW0IOUceYs0UXextL/XlRlLPLfuGEYYvA0=
+github.com/quorumcontrol/keyring v1.1.5-0.20200322160512-e16c51dc2ded/go.mod h1:657DQuMrBZRtuL/voxVyiyb6zpMehlm5vLB9Qwrv904=
 github.com/quorumcontrol/messages v1.1.1 h1:e90LvAM7YCZrFnXGM9H3pin+jjGqYPjW+YthBJkZHLc=
 github.com/quorumcontrol/messages v1.1.1/go.mod h1:PubykIzNsMO+CMecd7HDFKjBa4shVrPal8/GxM1+plc=
 github.com/quorumcontrol/messages/v2 v2.1.2/go.mod h1:on7qxEZYufdF6ZIyXFFWonyEmSdCuY+McIk2kLDiGwg=
