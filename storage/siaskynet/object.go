@@ -17,6 +17,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const TupeloTxnBatchSize = 75
+
 var log = logging.Logger("dgit.storage.siaskynet")
 
 type ObjectStorage struct {
@@ -126,9 +128,9 @@ func downloadObjectFromSkynet(s *Skynet, link string) (plumbing.EncodedObject, e
 	resultC, errC := s.DownloadObject(link)
 
 	select {
-	case err := <- errC:
+	case err := <-errC:
 		return nil, err
-	case o := <- resultC:
+	case o := <-resultC:
 		return o, nil
 	}
 }
@@ -188,10 +190,19 @@ func (ot *ObjectTransaction) Commit() error {
 	}
 
 	if len(skylinks) > 0 {
-		ot.log.Debugf("saving %d Skylinks in transaction to repo chaintree", len(skylinks))
-		_, err := ot.storage.Tupelo.PlayTransactions(ot.storage.Ctx, ot.storage.ChainTree, ot.storage.PrivateKey, tupeloTxns)
-		if err != nil {
-			return err
+		txnBatch := make([]*transactions.Transaction, 0)
+		lastIdx := len(tupeloTxns) - 1
+		for i, t := range tupeloTxns {
+			batchIdx := (i + 1) % TupeloTxnBatchSize
+			txnBatch = append(txnBatch, t)
+			if batchIdx == 0 || i == lastIdx {
+				ot.log.Debugf("saving %d Skylinks in transaction to repo chaintree", len(txnBatch))
+				_, err := ot.storage.Tupelo.PlayTransactions(ot.storage.Ctx, ot.storage.ChainTree, ot.storage.PrivateKey, txnBatch)
+				if err != nil {
+					return err
+				}
+				txnBatch = make([]*transactions.Transaction, 0)
+			}
 		}
 	}
 
