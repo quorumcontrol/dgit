@@ -54,18 +54,6 @@ a simple github rule as illustrated in [dgit-github-action](https://github.com/q
 * [Tupelo DLT](https://docs.tupelo.org/)
 * [Skynet](https://siasky.net/)
 
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
-
-- [Table of Contents](#table-of-contents)
-- [Getting Started](#getting-started)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Building](#building)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-
 ### Building
 - Clone this repo.
 - Run `make`. Generates `./dgit` in top level dir.
