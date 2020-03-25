@@ -29,10 +29,14 @@ tarball: dgit.tar.gz
 
 install: $(FIRSTGOPATH)/bin/dgit $(FIRSTGOPATH)/bin/git-remote-dgit
 
+uninstall:
+	rm -f $(FIRSTGOPATH)/bin/dgit
+	rm -f $(FIRSTGOPATH)/bin/git-remote-dgit
+
 test:
 	go test ./...
 
 clean:
 	rm -f dgit dgit.tar.gz
 
-.PHONY: all build tarball install test clean
+.PHONY: all build tarball install uninstall test clean
