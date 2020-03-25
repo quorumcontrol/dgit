@@ -2,6 +2,20 @@
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
+## TLDR: just try it!
+#### 1) install dgit
+```
+brew tap quorumcontrol/dgit && brew install dgit
+```
+#### 2) add decentralized ownership & storage to a .git repo ([what's it doing?](#usage))
+```
+dgit init
+```
+#### 3) use git normally with your new decentralized remote
+```
+git push
+```
+
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
@@ -19,24 +33,6 @@
     <b>dgit</b> accomplishes this without changing your GitHub workflow except that you can keep collaborating when it goes down.<br>
   </p>
 </p>
-
-### Built With
-
-* [Git](https://git-scm.com/)
-* [Tupelo DLT](https://docs.tupelo.org/)
-* [Skynet](https://siasky.net/)
-
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
-
-- [Table of Contents](#table-of-contents)
-- [Getting Started](#getting-started)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Building](#building)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -65,6 +61,12 @@ As an example:
 <br>
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
 a simple github rule as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your  dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
+
+### Built With
+
+* [Git](https://git-scm.com/)
+* [Tupelo DLT](https://docs.tupelo.org/)
+* [Skynet](https://siasky.net/)
 
 ### Building
 - Clone this repo.
