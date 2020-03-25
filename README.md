@@ -2,6 +2,20 @@
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
+## TLDR: just try it!
+#### 1) install dgit
+```
+brew tap quorumcontrol/dgit && brew install dgit
+```
+#### 2) add decentralized ownership & storage to a .git repo ([what's it doing?](#usage))
+```
+dgit init
+```
+#### 3) use git normally with your new decentralized remote
+```
+git push
+```
+
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
