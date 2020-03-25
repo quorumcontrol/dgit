@@ -20,24 +20,6 @@
   </p>
 </p>
 
-### Built With
-
-* [Git](https://git-scm.com/)
-* [Tupelo DLT](https://docs.tupelo.org/)
-* [Skynet](https://siasky.net/)
-
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
-
-- [Table of Contents](#table-of-contents)
-- [Getting Started](#getting-started)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Building](#building)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-
 <!-- GETTING STARTED -->
 ## Getting Started
 With three simple steps you can create a decentralized mirror of your existing github project.
@@ -65,6 +47,24 @@ As an example:
 <br>
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
 a simple github rule as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your  dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
+
+### Built With
+
+* [Git](https://git-scm.com/)
+* [Tupelo DLT](https://docs.tupelo.org/)
+* [Skynet](https://siasky.net/)
+
+<!-- TABLE OF CONTENTS -->
+## Table of Contents
+
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Building](#building)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
 
 ### Building
 - Clone this repo.
