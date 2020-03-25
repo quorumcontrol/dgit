@@ -290,6 +290,7 @@ func (i *Initializer) addDgitPushToRemote(ctx context.Context, remoteName string
 
 	prompt := promptui.Prompt{
 		Label:     stripNewLines(msg.AddDgitToRemoteConfirm),
+		Default:   "y",
 		Templates: promptTemplates,
 		IsConfirm: true,
 		Stdin:     i.stdin,
@@ -360,6 +361,7 @@ func (i *Initializer) addDgitRemote(ctx context.Context) error {
 
 	prompt := promptui.Prompt{
 		Label:     stripNewLines(msg.AddDgitRemoteConfirm),
+		Default:   "y",
 		Templates: promptTemplates,
 		IsConfirm: true,
 		Stdin:     i.stdin,
