@@ -69,7 +69,9 @@ jobs:
         with:
           name: dgit-source-${{ github.event.release.tag_name }}.tar.gz
       - name: move source tarball to brew cache
-        run: mv dgit-source-${{ github.event.release.tag_name }}.tar.gz $(brew --cache -s quorumcontrol/dgit/dgit)
+        run: |
+          brew tap quorumcontrol/dgit
+          mv dgit-source-${{ github.event.release.tag_name }}.tar.gz $(brew --cache -s quorumcontrol/dgit/dgit)
       - name: build bottle
         env:
           TARBALL: unknown
