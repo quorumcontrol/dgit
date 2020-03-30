@@ -18,7 +18,7 @@ jobs:
       - name: upload source tarball artifact
         uses: actions/upload-artifact@v1
         with:
-          name: dgit-source-${{ github.event.release.tag_name }}.tar.gz
+          name: dgit-source-${{ github.event.release.tag_name }}
           path: dgit-source-${{ github.event.release.tag_name }}.tar.gz
       - name: update release in formula
         run: |
@@ -67,7 +67,7 @@ jobs:
       - name: download source tarball artifact
         uses: actions/download-artifact@v1
         with:
-          name: dgit-source-${{ github.event.release.tag_name }}.tar.gz
+          name: dgit-source-${{ github.event.release.tag_name }}
       - name: move source tarball to brew cache
         run: |
           brew tap quorumcontrol/dgit
@@ -75,10 +75,8 @@ jobs:
           export cache_dir=$(dirname $cache_path)
           export cache_file=$(basename $cache_path)
           mkdir -p $cache_dir
-          ls -lad $cache_path || true
-          mv dgit-source-${{ github.event.release.tag_name }}.tar.gz $cache_file
+          mv dgit-source-${{ github.event.release.tag_name }}/dgit-source-${{ github.event.release.tag_name }}.tar.gz $cache_file
           mv $cache_file ${cache_dir}/
-          ls -lad $cache_path || true
       - name: build bottle
         env:
           TARBALL: unknown
