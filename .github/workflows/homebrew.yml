@@ -75,9 +75,9 @@ jobs:
           export cache_dir=$(dirname $cache_file)
           echo "Cache dir: $cache_dir"
           mkdir -p $cache_dir
-          ls -lad $cache_file
+          ls -lad $cache_file || true
           mv dgit-source-${{ github.event.release.tag_name }}.tar.gz $cache_file
-          ls -lad $cache_file
+          ls -lad $cache_file || true
       - name: build bottle
         env:
           TARBALL: unknown
