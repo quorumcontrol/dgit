@@ -13,6 +13,13 @@ jobs:
         with:
           repository: quorumcontrol/homebrew-dgit
           persist-credentials: false
+      - name: download source tarball
+        run: curl -L ${{ github.event.release.tarball_url }} -o dgit-source-${{ github.event.release.tag_name }}.tar.gz
+      - name: upload source tarball artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: dgit-source-${{ github.event.release.tag_name }}.tar.gz
+          path: dgit-source-${{ github.event.release.tag_name }}.tar.gz
       - name: update release in formula
         run: |
           cd Formula
@@ -21,7 +28,7 @@ jobs:
           echo "version: \"${{ github.event.release.tag_name }}\"" > dgit.yml
 
           # set SHA256 sum of source tarball
-          export SHASUM=$(curl -L ${{ github.event.release.tarball_url }} | sha256sum | awk '{print $1}')
+          export SHASUM=$(sha256sum dgit-source-${{ github.event.release.tag_name }}.tar.gz | awk '{print $1}')
           echo -e "url: \"${{ github.event.release.tarball_url }}\"\nsha256: \"${SHASUM}\"" >> dgit.yml
 
           # update bottles root_url
@@ -57,6 +64,12 @@ jobs:
         with:
           repository: quorumcontrol/homebrew-dgit
           persist-credentials: false
+      - name: download source tarball artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: dgit-source-${{ github.event.release.tag_name }}.tar.gz
+      - name: move source tarball to brew cache
+        run: mv dgit-source-${{ github.event.release.tag_name }}.tar.gz $(brew --cache -s quorumcontrol/dgit/dgit)
       - name: build bottle
         env:
           TARBALL: unknown
