@@ -71,13 +71,14 @@ jobs:
       - name: move source tarball to brew cache
         run: |
           brew tap quorumcontrol/dgit
-          export cache_file=$(brew --cache -s quorumcontrol/dgit/dgit)
-          export cache_dir=$(dirname $cache_file)
-          echo "Cache dir: $cache_dir"
+          export cache_path=$(brew --cache -s quorumcontrol/dgit/dgit)
+          export cache_dir=$(dirname $cache_path)
+          export cache_file=$(basename $cache_path)
           mkdir -p $cache_dir
-          ls -lad $cache_file || true
+          ls -lad $cache_path || true
           mv dgit-source-${{ github.event.release.tag_name }}.tar.gz $cache_file
-          ls -lad $cache_file || true
+          mv $cache_file ${cache_dir}/
+          ls -lad $cache_path || true
       - name: build bottle
         env:
           TARBALL: unknown
