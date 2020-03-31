@@ -30,7 +30,7 @@ A quick install using [brew](https://brew.sh/) gets you started:
 ```
 brew tap quorumcontrol/dgit && brew install dgit
 ```
-*Or skip the tap and directly install with: `brew install quorumcontrol/dgit/dgit`*
+*Or if you don't have homebrew check out our [simple manual installation instructions](https://github.com/quorumcontrol/dgit/wiki/dgit-Install-without-Homebrew).
 
 ### Usage
 Next you will need to initialize each repo you want to make decentralized:
@@ -53,6 +53,9 @@ As an example:
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
 a simple github action as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed yourde dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
 
+### FAQ
+
+You can find answers to some of the most [frequently asked questions on the wiki](https://github.com/quorumcontrol/dgit/wiki/Frequently-Asked-Questions).
 ### Built With
 
 * [Git](https://git-scm.com/)
