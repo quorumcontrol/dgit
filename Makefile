@@ -17,13 +17,13 @@ dgit: go.mod go.sum $(gosources)
 build: dgit
 
 $(FIRSTGOPATH)/bin/dgit: dgit
-	cp dgit $(FIRSTGOPATH)/bin/
+	cp $< $(FIRSTGOPATH)/bin/$<
 
-$(FIRSTGOPATH)/bin/git-remote-dgit:
-	cp git-remote-dgit $(FIRSTGOPATH)/bin/
+$(FIRSTGOPATH)/bin/git-remote-dgit: git-remote-dgit
+	cp $< $(FIRSTGOPATH)/bin/$<
 
 dgit.tar.gz: dgit git-remote-dgit
-	tar -czvf dgit.tar.gz dgit git-remote-dgit
+	tar -czvf dgit.tar.gz $^
 
 tarball: dgit.tar.gz
 
