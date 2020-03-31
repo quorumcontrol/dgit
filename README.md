@@ -30,7 +30,7 @@ A quick install using [brew](https://brew.sh/) gets you started:
 ```
 brew tap quorumcontrol/dgit && brew install dgit
 ```
-*Or if you don't have homebrew check out our [simple manual installation instructions](https://github.com/quorumcontrol/dgit/wiki/dgit-Install-without-Homebrew).
+*Or if you don't have homebrew check out our [simple manual installation instructions](https://github.com/quorumcontrol/dgit/wiki/dgit-Install-without-Homebrew).*
 
 ### Usage
 Next you will need to initialize each repo you want to make decentralized:
