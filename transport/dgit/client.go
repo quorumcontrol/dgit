@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"path"
 
-	logging "github.com/ipfs/go-log"
-	"github.com/quorumcontrol/chaintree/nodestore"
-	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
-	"github.com/quorumcontrol/dgit/tupelo/repotree"
-	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	gitclient "github.com/go-git/go-git/v5/plumbing/transport/client"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
+	logging "github.com/ipfs/go-log"
+	"github.com/quorumcontrol/chaintree/nodestore"
+	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+
+	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
+	"github.com/quorumcontrol/dgit/tupelo/namedtree"
+	"github.com/quorumcontrol/dgit/tupelo/repotree"
 )
 
 var log = logging.Logger("dgit.client")
@@ -22,8 +23,8 @@ type Client struct {
 	transport.Transport
 
 	ctx       context.Context
-	tupelo    *tupelo.Client
-	nodestore nodestore.DagStore
+	Tupelo    *tupelo.Client
+	Nodestore nodestore.DagStore
 	server    transport.Transport
 }
 
@@ -51,7 +52,7 @@ func NewClient(ctx context.Context, basePath string) (*Client, error) {
 	var err error
 	c := &Client{ctx: ctx}
 	dir := path.Join(basePath, protocol)
-	c.tupelo, c.nodestore, err = clientbuilder.Build(ctx, dir)
+	c.Tupelo, c.Nodestore, err = clientbuilder.Build(ctx, dir)
 	return c, err
 }
 
@@ -59,23 +60,24 @@ func NewClient(ctx context.Context, basePath string) (*Client, error) {
 func NewLocalClient(ctx context.Context) (*Client, error) {
 	var err error
 	c := &Client{ctx: ctx}
-	c.tupelo, c.nodestore, err = clientbuilder.BuildLocal(ctx)
+	c.Tupelo, c.Nodestore, err = clientbuilder.BuildLocal(ctx)
 	return c, err
 }
 
 // FIXME: this probably shouldn't be here
-func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoint, auth transport.AuthMethod, storage string) (*consensus.SignedChainTree, error) {
-	return repotree.Create(ctx, &repotree.RepoTreeOptions{
-		Name:              endpoint.Host + endpoint.Path,
-		ObjectStorageType: storage,
-		Client:            c.tupelo,
-		NodeStore:         c.nodestore,
-		Ownership:         []string{auth.String()},
+func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoint, auth transport.AuthMethod) (*namedtree.NamedTree, error) {
+	return repotree.Create(ctx, &repotree.Options{
+		Options: &namedtree.Options{
+			Name:      endpoint.Host + endpoint.Path,
+			Client:    c.Tupelo,
+			NodeStore: c.Nodestore,
+			Owners:    []string{auth.String()},
+		},
 	})
 }
 
-func (c *Client) FindRepoTree(ctx context.Context, repo string) (*consensus.SignedChainTree, error) {
-	return repotree.Find(ctx, repo, c.tupelo)
+func (c *Client) FindRepoTree(ctx context.Context, repo string) (*namedtree.NamedTree, error) {
+	return repotree.Find(ctx, repo, c.Tupelo)
 }
 
 func (c *Client) RegisterAsDefault() {
@@ -83,11 +85,11 @@ func (c *Client) RegisterAsDefault() {
 }
 
 func (c *Client) NewUploadPackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.UploadPackSession, error) {
-	loader := NewChainTreeLoader(c.ctx, c.tupelo, c.nodestore, auth)
+	loader := NewChainTreeLoader(c.ctx, c.Tupelo, c.Nodestore, auth)
 	return server.NewServer(loader).NewUploadPackSession(ep, auth)
 }
 
 func (c *Client) NewReceivePackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.ReceivePackSession, error) {
-	loader := NewChainTreeLoader(c.ctx, c.tupelo, c.nodestore, auth)
+	loader := NewChainTreeLoader(c.ctx, c.Tupelo, c.Nodestore, auth)
 	return server.NewServer(loader).NewReceivePackSession(ep, auth)
 }

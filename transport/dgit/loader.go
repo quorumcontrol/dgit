@@ -13,6 +13,7 @@ import (
 
 	"github.com/quorumcontrol/dgit/storage"
 	"github.com/quorumcontrol/dgit/storage/chaintree"
+	"github.com/quorumcontrol/dgit/tupelo/namedtree"
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
 )
 
@@ -38,7 +39,7 @@ func NewChainTreeLoader(ctx context.Context, tupelo *tupelo.Client, nodestore no
 }
 
 func (l *ChainTreeLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
-	chainTree, err := repotree.Find(l.ctx, ep.Host+ep.Path, l.tupelo)
+	repoTree, err := repotree.Find(l.ctx, ep.Host+ep.Path, l.tupelo)
 
 	var privateKey *ecdsa.PrivateKey
 
@@ -51,7 +52,7 @@ func (l *ChainTreeLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
 		return nil, fmt.Errorf("Unsupported auth type %T", l.auth)
 	}
 
-	if err == repotree.ErrNotFound {
+	if err == namedtree.ErrNotFound {
 		return nil, transport.ErrRepositoryNotFound
 	}
 
@@ -62,7 +63,7 @@ func (l *ChainTreeLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
 	return chaintree.NewStorage(&storage.Config{
 		Ctx:        l.ctx,
 		Tupelo:     l.tupelo,
-		ChainTree:  chainTree,
+		ChainTree:  repoTree.ChainTree,
 		PrivateKey: privateKey,
 	})
 }

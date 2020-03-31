@@ -7,12 +7,11 @@ import (
 )
 
 func TestRepoIsCaseInsenitive(t *testing.T) {
-
-	lower, err := Did("quorumcontrol/dgit-test")
+	lower, err := namedTreeGen.Did("quorumcontrol/dgit-test")
 	require.Nil(t, err)
-	mixed, err := Did("quorumcontrol/DGIT-test")
+	mixed, err := namedTreeGen.Did("quorumcontrol/DGIT-test")
 	require.Nil(t, err)
-	upper, err := Did("QUORUMCONTROL/DGIT-TEST")
+	upper, err := namedTreeGen.Did("QUORUMCONTROL/DGIT-TEST")
 	require.Nil(t, err)
 
 	require.Equal(t, lower, mixed)

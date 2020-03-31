@@ -29,9 +29,6 @@ var KeyringPrettyNames = map[string]string{
 	"*keyring.passKeyring":    "pass",
 }
 
-// TODO: scope private key by usernames
-var keyName = "default"
-
 var ErrKeyNotFound = keyringlib.ErrKeyNotFound
 
 func NewDefault() (Keyring, error) {
@@ -56,7 +53,7 @@ func Name(kr Keyring) string {
 	return name
 }
 
-func FindPrivateKey(kr Keyring) (key *ecdsa.PrivateKey, err error) {
+func FindPrivateKey(kr Keyring, keyName string) (key *ecdsa.PrivateKey, err error) {
 	privateKeyItem, err := kr.Get(keyName)
 	if err == keyringlib.ErrKeyNotFound {
 		return nil, ErrKeyNotFound
@@ -75,8 +72,8 @@ func FindPrivateKey(kr Keyring) (key *ecdsa.PrivateKey, err error) {
 	return key, nil
 }
 
-func FindOrCreatePrivateKey(kr Keyring) (key *ecdsa.PrivateKey, isNew bool, err error) {
-	privateKey, err := FindPrivateKey(kr)
+func FindOrCreatePrivateKey(kr Keyring, keyName string) (key *ecdsa.PrivateKey, isNew bool, err error) {
+	privateKey, err := FindPrivateKey(kr, keyName)
 	if err == nil {
 		return privateKey, false, nil
 	}

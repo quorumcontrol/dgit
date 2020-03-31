@@ -61,7 +61,7 @@ func TestRunnerIntegration(t *testing.T) {
 	require.NotNil(t, userMsgReader)
 
 	kr := keyring.NewMemory()
-	_, isNew, err := keyring.FindOrCreatePrivateKey(kr)
+	_, isNew, err := keyring.FindOrCreatePrivateKey(kr, "test")
 	require.Nil(t, err)
 	require.True(t, isNew)
 

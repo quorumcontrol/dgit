@@ -1,4 +1,4 @@
-package repotree
+package usertree
 
 import (
 	"context"
@@ -8,21 +8,21 @@ import (
 	"github.com/quorumcontrol/dgit/tupelo/namedtree"
 )
 
-const repoSalt = "decentragit-0.0.0-alpha"
+const userSalt = "dgit-user-v0"
 
 var namedTreeGen *namedtree.Generator
 
 func init() {
-	namedTreeGen = &namedtree.Generator{Namespace: repoSalt}
+	namedTreeGen = &namedtree.Generator{Namespace: userSalt}
 }
 
 type Options struct {
 	*namedtree.Options
 }
 
-func Find(ctx context.Context, repo string, client *tupelo.Client) (*namedtree.NamedTree, error) {
+func Find(ctx context.Context, username string, client *tupelo.Client) (*namedtree.NamedTree, error) {
 	namedTreeGen.Client = client
-	return namedTreeGen.Find(ctx, repo)
+	return namedTreeGen.Find(ctx, username)
 }
 
 func Create(ctx context.Context, opts *Options) (*namedtree.NamedTree, error) {

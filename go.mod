@@ -3,15 +3,16 @@ module github.com/quorumcontrol/dgit
 go 1.13
 
 replace (
+	github.com/99designs/keyring => github.com/quorumcontrol/keyring v1.1.5-0.20200324201224-62c57642bc6f
 	github.com/NebulousLabs/go-skynet => github.com/quorumcontrol/go-skynet v0.0.0-20200312164139-76fb137005c8
 	github.com/go-critic/go-critic => github.com/go-critic/go-critic v0.4.0
+	github.com/go-git/go-git/v5 => github.com/quorumcontrol/go-git/v5 v5.0.1-0.20200330190121-d2b81490dedb
 	github.com/golangci/errcheck => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
 	github.com/golangci/go-tools => github.com/golangci/go-tools v0.0.0-20190318060251-af6baa5dc196
 	github.com/golangci/gofmt => github.com/golangci/gofmt v0.0.0-20181222123516-0b8337e80d98
 	github.com/golangci/gosec => github.com/golangci/gosec v0.0.0-20190211064107-66fb7fc33547
 	github.com/golangci/lint-1 => github.com/golangci/lint-1 v0.0.0-20190420132249-ee948d087217
 	github.com/keybase/go-keychain => github.com/quorumcontrol/go-keychain v0.0.0-20200324182052-9544b7eee399
-	github.com/99designs/keyring => github.com/quorumcontrol/keyring v1.1.5-0.20200324201224-62c57642bc6f
 	golang.org/x/xerrors => golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 	mvdan.cc/unparam => mvdan.cc/unparam v0.0.0-20190209190245-fbb59629db34
 )

@@ -59,7 +59,12 @@ var initCommand = &cobra.Command{
 		}
 		client.RegisterAsDefault()
 
-		err = initializer.Init(ctx, repo, args)
+		initOpts := &initializer.Options{
+			Repo:      repo,
+			Tupelo:    client.Tupelo,
+			NodeStore: client.Nodestore,
+		}
+		err = initializer.Init(ctx, initOpts, args)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

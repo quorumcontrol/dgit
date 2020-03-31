@@ -9,16 +9,19 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/manifoldco/promptui"
-	"github.com/quorumcontrol/dgit/keyring"
-	"github.com/quorumcontrol/dgit/msg"
-	"github.com/quorumcontrol/dgit/transport/dgit"
-	"github.com/quorumcontrol/dgit/tupelo/repotree"
-	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/manifoldco/promptui"
+	"github.com/quorumcontrol/chaintree/nodestore"
+	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+
+	"github.com/quorumcontrol/dgit/constants"
+	"github.com/quorumcontrol/dgit/keyring"
+	"github.com/quorumcontrol/dgit/msg"
+	"github.com/quorumcontrol/dgit/transport/dgit"
+	"github.com/quorumcontrol/dgit/tupelo/namedtree"
+	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
 
 const dgitRemote = "dgit"
@@ -33,22 +36,32 @@ var promptTemplates = &promptui.PromptTemplates{
 	Success: `{{ . }} `,
 }
 
-type Initializer struct {
-	stdin    io.ReadCloser
-	stdout   io.WriteCloser
-	stderr   io.WriteCloser
-	keyring  keyring.Keyring
-	auth     transport.AuthMethod
-	repo     *git.Repository
-	endpoint *transport.Endpoint
+type Options struct {
+	Repo      *git.Repository
+	Tupelo    *tupelo.Client
+	NodeStore nodestore.DagStore
 }
 
-func Init(ctx context.Context, repo *git.Repository, args []string) error {
+type Initializer struct {
+	stdin     io.ReadCloser
+	stdout    io.WriteCloser
+	stderr    io.WriteCloser
+	keyring   keyring.Keyring
+	auth      transport.AuthMethod
+	repo      *git.Repository
+	endpoint  *transport.Endpoint
+	tupelo    *tupelo.Client
+	nodestore nodestore.DagStore
+}
+
+func Init(ctx context.Context, opts *Options, args []string) error {
 	i := &Initializer{
-		stdin:  os.Stdin,
-		stdout: os.Stdout,
-		stderr: os.Stderr,
-		repo:   repo,
+		stdin:     os.Stdin,
+		stdout:    os.Stdout,
+		stderr:    os.Stderr,
+		repo:      opts.Repo,
+		tupelo:    opts.Tupelo,
+		nodestore: opts.NodeStore,
 	}
 	return i.Init(ctx, args)
 }
@@ -92,6 +105,45 @@ func (i *Initializer) Init(ctx context.Context, args []string) error {
 	return nil
 }
 
+func (i *Initializer) findOrRequestUsername() (string, error) {
+	repoConfig, err := i.repo.Config()
+	if err != nil {
+		return "", fmt.Errorf("could not get repo config: %w", err)
+	}
+
+	dgitConfig := repoConfig.Raw.Section(constants.DgitConfigSection)
+
+	var username string
+	if dgitConfig != nil {
+		username = dgitConfig.Option("username")
+	}
+
+	prompt := promptui.Prompt{
+		Label:     stripNewLines(msg.UsernamePrompt),
+		Templates: promptTemplates,
+		Default:   username,
+		Stdin:     i.stdin,
+		Stdout:    i.stdout,
+		Validate: func(input string) error {
+			if input == "" {
+				return fmt.Errorf("cannot be blank")
+			}
+			return nil
+		},
+	}
+	newUsername, err := prompt.Run()
+	fmt.Fprintln(i.stdout)
+	if err != nil {
+		return "", fmt.Errorf("bad username: %w", err)
+	}
+
+	if username == "" {
+		repoConfig.Raw.AddOption(constants.DgitConfigSection, "", "username", newUsername)
+	}
+
+	return newUsername, nil
+}
+
 func (i *Initializer) getAuth() (transport.AuthMethod, error) {
 	if i.auth != nil {
 		return i.auth, nil
@@ -103,24 +155,45 @@ func (i *Initializer) getAuth() (transport.AuthMethod, error) {
 		return nil, fmt.Errorf("Error with keyring: %v", err)
 	}
 
-	privateKey, isNew, err := keyring.FindOrCreatePrivateKey(kr)
+	username, err := i.findOrRequestUsername()
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, isNew, err := keyring.FindOrCreatePrivateKey(kr, username)
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching key from keyring: %v", err)
 	}
 
+	i.auth = dgit.NewPrivateKeyAuth(privateKey)
+
 	if isNew {
+		ctx := context.Background()
+
+		opts := &usertree.Options{
+			Options: &namedtree.Options{
+				Name:      username,
+				Client:    i.tupelo,
+				NodeStore: i.nodestore,
+				Owners:    []string{i.auth.String()},
+			},
+		}
+		_, err := usertree.Create(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+
 		msg.Fprint(i.stdout, msg.Welcome, map[string]interface{}{
 			"keyringProvider": keyring.Name(kr),
-			"userAddress":     crypto.PubkeyToAddress(privateKey.PublicKey).String(),
+			"username":        username,
 		})
 		fmt.Fprintln(i.stdout)
-	}
+	} // Wes TODO: else Get userTree using warp wallet username -> DID thingy
 
-	i.auth = dgit.NewPrivateKeyAuth(privateKey)
 	return i.auth, nil
 }
 
-func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*consensus.SignedChainTree, error) {
+func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*namedtree.NamedTree, error) {
 	client, err := dgit.Default()
 	if err != nil {
 		return nil, err
@@ -137,7 +210,7 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*consensus.Sign
 		return tree, nil
 	}
 	// a real error, return
-	if err != repotree.ErrNotFound {
+	if err != namedtree.ErrNotFound {
 		return nil, err
 	}
 
@@ -147,13 +220,13 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*consensus.Sign
 	}
 
 	// repo doesn't exist, create it
-	newTree, err := client.CreateRepoTree(ctx, endpoint, auth, "siaskynet")
+	newTree, err := client.CreateRepoTree(ctx, endpoint, auth)
 	if err != nil {
 		return nil, err
 	}
 
 	msg.Fprint(i.stdout, msg.RepoCreated, map[string]interface{}{
-		"did":  newTree.MustId(),
+		"did":  newTree.Did(),
 		"repo": repoNameFor(endpoint),
 	})
 	fmt.Fprintln(i.stdout)

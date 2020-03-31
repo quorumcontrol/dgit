@@ -16,6 +16,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	logging "github.com/ipfs/go-log"
+
+	"github.com/quorumcontrol/dgit/constants"
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/msg"
 	"github.com/quorumcontrol/dgit/transport/dgit"
@@ -179,7 +181,7 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 					return err
 				}
 
-				_, err = client.CreateRepoTree(ctx, endpoint, auth, os.Getenv("DGIT_OBJ_STORAGE"))
+				_, err = client.CreateRepoTree(ctx, endpoint, auth)
 				if err != nil {
 					return err
 				}
@@ -291,7 +293,25 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		}
 	}
 
-	privateKey, err := keyring.FindPrivateKey(r.keyring)
+	repoConfig, err := r.local.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	dgitConfig := repoConfig.Raw.Section(constants.DgitConfigSection)
+
+	var username string
+	if dgitConfig != nil {
+		username = dgitConfig.Option("username")
+	}
+
+	// TODO: What other username fallbacks should we have?
+
+	if username == "" {
+		log.Fatal("No dgit username configured. Run `git config --global dgit.username your-username`.")
+	}
+
+	privateKey, err := keyring.FindPrivateKey(r.keyring, username)
 	if err == keyring.ErrKeyNotFound {
 		return nil, fmt.Errorf(msg.Parse(msg.PrivateKeyNotFound, map[string]interface{}{
 			"keyringProvider": keyring.Name(r.keyring),
