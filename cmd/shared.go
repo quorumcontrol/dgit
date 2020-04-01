@@ -3,23 +3,34 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/spf13/cobra"
 
+	"github.com/quorumcontrol/dgit/msg"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 )
 
-func openRepo(path string) (*dgit.Repo, error) {
+func openRepo(cmd *cobra.Command, path string) *dgit.Repo {
 	gitRepo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{
 		DetectDotGit: true,
 	})
 
+	if err == git.ErrRepositoryNotExists {
+		msg.Fprint(os.Stderr, msg.RepoNotFoundInPath, map[string]interface{}{
+			"path": path,
+			"cmd":  rootCmd.Name() + " " + cmd.Name(),
+		})
+		os.Exit(1)
+	}
 	if err != nil {
-		return nil, err
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
-	return &dgit.Repo{Repository: gitRepo}, nil
+	return &dgit.Repo{Repository: gitRepo}
 }
 
 func newClient(ctx context.Context, repo *dgit.Repo) (*dgit.Client, error) {

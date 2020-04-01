@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 
 	"github.com/quorumcontrol/dgit/initializer"
-	"github.com/quorumcontrol/dgit/msg"
 )
 
 func init() {
@@ -32,18 +30,7 @@ var initCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		repo, err := openRepo(callingDir)
-		if err == git.ErrRepositoryNotExists {
-			msg.Fprint(os.Stderr, msg.RepoNotFoundInPath, map[string]interface{}{
-				"path": callingDir,
-				"cmd":  rootCmd.Name() + " " + cmd.Name(),
-			})
-			os.Exit(1)
-		}
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+		repo := openRepo(cmd, callingDir)
 
 		client, err := newClient(ctx, repo)
 		if err != nil {
