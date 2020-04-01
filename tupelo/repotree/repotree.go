@@ -13,6 +13,7 @@ import (
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 
 	"github.com/quorumcontrol/dgit/tupelo/namedtree"
+	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
 
 const (
@@ -88,6 +89,20 @@ func Create(ctx context.Context, opts *Options) (*RepoTree, error) {
 	return &RepoTree{namedTree}, nil
 }
 
+func (rt *RepoTree) usernameToKeyAddr(ctx context.Context, username string) (string, error) {
+	userTree, err := usertree.Find(ctx, username, rt.Tupelo)
+	if err != nil {
+		return "", err
+	}
+
+	auths, err := userTree.ChainTree.Authentications()
+	if err != nil {
+		return "", err
+	}
+
+	return auths[0], nil
+}
+
 // updateCollaborators takes an ownerKey for the update transaction (if needed)
 // and a newCollaborators func that takes the current set and returns the entire set
 // of new collaborators (it is expected to close over the incoming set).
@@ -103,12 +118,31 @@ func (rt *RepoTree) updateCollaborators(ctx context.Context, ownerKey *ecdsa.Pri
 		return nil
 	}
 
-	txn, err := chaintree.NewSetDataTransaction("dgit/team", updated)
+	teamTxn, err := chaintree.NewSetDataTransaction("dgit/team", updated)
 	if err != nil {
 		return err
 	}
 
-	_, err = rt.Tupelo.PlayTransactions(ctx, rt.ChainTree, ownerKey, []*transactions.Transaction{txn})
+	keyAddrs, err := rt.ChainTree.Authentications()
+	if err != nil {
+		return err
+	}
+
+	newKeyAddrs := make([]string, 0)
+	for _, u := range updated {
+		ka, err := rt.usernameToKeyAddr(ctx, u)
+		if err != nil {
+			return err
+		}
+		newKeyAddrs = append(newKeyAddrs, ka)
+	}
+
+	// append to first owner to ensure primary owner never changes
+	keyAddrs = append([]string{keyAddrs[0]}, newKeyAddrs...)
+
+	ownersTxn, err := chaintree.NewSetOwnershipTransaction(keyAddrs)
+
+	_, err = rt.Tupelo.PlayTransactions(ctx, rt.ChainTree, ownerKey, []*transactions.Transaction{teamTxn, ownersTxn})
 	if err != nil {
 		return err
 	}
