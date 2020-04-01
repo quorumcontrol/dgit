@@ -62,6 +62,16 @@ As an example:
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
 a simple github rule as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your  dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
 
+#### Collaborators
+
+You can manage your repo's team of collaborators with the `dgit team` command:
+
+* `dgit team add [collaborator usernames]`
+* `dgit team list`
+* `dgit team remove [usernames]`
+
+Anyone on the team will be allowed to push to the repo in the current directory.
+
 ### Built With
 
 * [Git](https://git-scm.com/)
