@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/crypto"
+	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
@@ -20,6 +20,8 @@ const (
 	repoSalt                 = "decentragit-0.0.0-alpha"
 	DefaultObjectStorageType = "siaskynet"
 )
+
+var log = logging.Logger("dgit.repotree")
 
 var collabPath = []string{"tree", "data", "dgit", "team"}
 
@@ -46,7 +48,8 @@ func Find(ctx context.Context, repo string, client *tupelo.Client) (*RepoTree, e
 	return &RepoTree{nt}, nil
 }
 
-func Create(ctx context.Context, opts *Options) (*RepoTree, error) {
+func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*RepoTree, error) {
+	log.Debugf("creating new repotree with options: %+v", opts.Options)
 	namedTree, err := namedTreeGen.New(ctx, opts.Options)
 	if err != nil {
 		return nil, err
@@ -63,6 +66,7 @@ func Create(ctx context.Context, opts *Options) (*RepoTree, error) {
 	if opts.ObjectStorageType == "" {
 		opts.ObjectStorageType = DefaultObjectStorageType
 	}
+	log.Debugf("using object storage type %s", opts.ObjectStorageType)
 	config := map[string]map[string]string{"objectStorage": {"type": opts.ObjectStorageType}}
 	configTxn, err := chaintree.NewSetDataTransaction("dgit/config", config)
 	if err != nil {
@@ -75,11 +79,6 @@ func Create(ctx context.Context, opts *Options) (*RepoTree, error) {
 	}
 
 	txns := []*transactions.Transaction{repoTxn, configTxn, teamTxn}
-
-	ownerKey, err := crypto.ToECDSA([]byte(opts.Owners[0]))
-	if err != nil {
-		return nil, err
-	}
 
 	_, err = opts.Tupelo.PlayTransactions(ctx, namedTree.ChainTree, ownerKey, txns)
 	if err != nil {

@@ -65,6 +65,13 @@ func NewLocalClient(ctx context.Context) (*Client, error) {
 
 // FIXME: this probably shouldn't be here
 func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoint, auth transport.AuthMethod) (*repotree.RepoTree, error) {
+	var (
+		pkAuth *PrivateKeyAuth
+		ok     bool
+	)
+	if pkAuth, ok = auth.(*PrivateKeyAuth); !ok {
+		return nil, fmt.Errorf("unable to cast %T to PrivateKeyAuth", auth)
+	}
 	return repotree.Create(ctx, &repotree.Options{
 		Options: &namedtree.Options{
 			Name:      endpoint.Host + endpoint.Path,
@@ -72,7 +79,7 @@ func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoin
 			NodeStore: c.Nodestore,
 			Owners:    []string{auth.String()},
 		},
-	})
+	}, pkAuth.Key())
 }
 
 func (c *Client) FindRepoTree(ctx context.Context, repo string) (*repotree.RepoTree, error) {
