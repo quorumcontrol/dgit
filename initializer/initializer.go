@@ -115,6 +115,13 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 		username = dgitConfig.Option("username")
 	}
 
+	// try looking up the GitHub username for the default
+	if username == "" {
+		if ghConfig := repoConfig.Raw.Section("github"); ghConfig != nil {
+			username = ghConfig.Option("user")
+		}
+	}
+
 	prompt := promptui.Prompt{
 		Label:     stripNewLines(msg.UsernamePrompt),
 		Templates: promptTemplates,
