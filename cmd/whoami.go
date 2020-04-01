@@ -12,9 +12,9 @@ func init() {
 }
 
 var whoAmICommand = &cobra.Command{
-	Use: "whoami",
+	Use:   "whoami",
 	Short: "Print out your username in the current repo",
-	Args: cobra.NoArgs,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		callingDir, err := os.Getwd()
 		if err != nil {

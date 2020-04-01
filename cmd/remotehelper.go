@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/quorumcontrol/dgit/remotehelper"
 	"github.com/quorumcontrol/dgit/storage/readonly"
 	"github.com/quorumcontrol/dgit/storage/split"
 	"github.com/quorumcontrol/dgit/transport/dgit"
 	"github.com/spf13/cobra"
-	"github.com/go-git/go-billy/v5/osfs"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/storage/filesystem"
 )
 
 func init() {
