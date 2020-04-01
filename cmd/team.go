@@ -6,10 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
-
-	"github.com/quorumcontrol/dgit/msg"
 )
 
 func init() {
