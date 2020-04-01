@@ -11,7 +11,9 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
+	configformat "github.com/go-git/go-git/v5/plumbing/format/config"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	logging "github.com/ipfs/go-log"
 	"github.com/manifoldco/promptui"
 	"github.com/quorumcontrol/chaintree/nodestore"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
@@ -24,6 +26,8 @@ import (
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
 	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
+
+var log = logging.Logger("dgit.initializer")
 
 var validRepoName = regexp.MustCompile(`^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+`)
 
@@ -142,8 +146,18 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 		return "", fmt.Errorf("bad username: %w", err)
 	}
 
-	if username == "" {
-		repoConfig.Raw.AddOption(constants.DgitConfigSection, "", "username", newUsername)
+	if username != "" {
+		log.Debugf("adding dgit.username to repo config")
+		newConfig := repoConfig.Raw.AddOption(constants.DgitConfigSection, configformat.NoSubsection, "username", newUsername)
+		repoConfig.Raw = newConfig
+		err = repoConfig.Validate()
+		if err != nil {
+			return "", err
+		}
+		err = i.repo.Storer.SetConfig(repoConfig)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return newUsername, nil
@@ -225,6 +239,7 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*repotree.RepoT
 	}
 
 	// repo doesn't exist, create it
+	log.Debugf("creating new repo tree with endpoint %+v and auth %+v", i.repo.MustEndpoint(), auth)
 	newTree, err := client.CreateRepoTree(ctx, i.repo.MustEndpoint(), auth)
 	if err != nil {
 		return nil, err
