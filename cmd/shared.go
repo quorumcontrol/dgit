@@ -30,7 +30,7 @@ func openRepo(cmd *cobra.Command, path string) *dgit.Repo {
 		os.Exit(1)
 	}
 
-	return &dgit.Repo{Repository: gitRepo}
+	return dgit.NewRepo(gitRepo)
 }
 
 func newClient(ctx context.Context, repo *dgit.Repo) (*dgit.Client, error) {

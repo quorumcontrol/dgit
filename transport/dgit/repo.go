@@ -22,7 +22,7 @@ type Repo struct {
 	auth     transport.AuthMethod
 }
 
-func New(gitRepo *git.Repository) *Repo {
+func NewRepo(gitRepo *git.Repository) *Repo {
 	return &Repo{Repository: gitRepo}
 }
 
