@@ -12,6 +12,7 @@ import (
 	"github.com/quorumcontrol/chaintree/nodestore"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 
+	"github.com/quorumcontrol/dgit/constants"
 	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
 	"github.com/quorumcontrol/dgit/tupelo/namedtree"
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
@@ -28,21 +29,19 @@ type Client struct {
 	server    transport.Transport
 }
 
-const protocol = "dgit"
-
 func Protocol() string {
-	return protocol
+	return constants.Protocol
 }
 
 func Default() (*Client, error) {
-	client, ok := gitclient.Protocols[protocol]
+	client, ok := gitclient.Protocols[constants.Protocol]
 	if !ok {
-		return nil, fmt.Errorf("no client registered for '%s'", protocol)
+		return nil, fmt.Errorf("no client registered for '%s'", constants.Protocol)
 	}
 
 	asClient, ok := client.(*Client)
 	if !ok {
-		return nil, fmt.Errorf("%s registered %T, but is not a dgit.Client", protocol, client)
+		return nil, fmt.Errorf("%s registered %T, but is not a dgit.Tupelo", constants.Protocol, client)
 	}
 
 	return asClient, nil
@@ -51,7 +50,7 @@ func Default() (*Client, error) {
 func NewClient(ctx context.Context, basePath string) (*Client, error) {
 	var err error
 	c := &Client{ctx: ctx}
-	dir := path.Join(basePath, protocol)
+	dir := path.Join(basePath, constants.Protocol)
 	c.Tupelo, c.Nodestore, err = clientbuilder.Build(ctx, dir)
 	return c, err
 }
@@ -65,23 +64,23 @@ func NewLocalClient(ctx context.Context) (*Client, error) {
 }
 
 // FIXME: this probably shouldn't be here
-func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoint, auth transport.AuthMethod) (*namedtree.NamedTree, error) {
+func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoint, auth transport.AuthMethod) (*repotree.RepoTree, error) {
 	return repotree.Create(ctx, &repotree.Options{
 		Options: &namedtree.Options{
 			Name:      endpoint.Host + endpoint.Path,
-			Client:    c.Tupelo,
+			Tupelo:    c.Tupelo,
 			NodeStore: c.Nodestore,
 			Owners:    []string{auth.String()},
 		},
 	})
 }
 
-func (c *Client) FindRepoTree(ctx context.Context, repo string) (*namedtree.NamedTree, error) {
+func (c *Client) FindRepoTree(ctx context.Context, repo string) (*repotree.RepoTree, error) {
 	return repotree.Find(ctx, repo, c.Tupelo)
 }
 
 func (c *Client) RegisterAsDefault() {
-	gitclient.InstallProtocol(protocol, c)
+	gitclient.InstallProtocol(constants.Protocol, c)
 }
 
 func (c *Client) NewUploadPackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.UploadPackSession, error) {
@@ -92,4 +91,85 @@ func (c *Client) NewUploadPackSession(ep *transport.Endpoint, auth transport.Aut
 func (c *Client) NewReceivePackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.ReceivePackSession, error) {
 	loader := NewChainTreeLoader(c.ctx, c.Tupelo, c.Nodestore, auth)
 	return server.NewServer(loader).NewReceivePackSession(ep, auth)
+}
+
+func (c *Client) AddRepoCollaborator(ctx context.Context, repo *Repo, collaborators []string) error {
+	repoName, err := repo.Name()
+	if err != nil {
+		return err
+	}
+
+	repoTree, err := c.FindRepoTree(ctx, repoName)
+	if err != nil {
+		return err
+	}
+
+	auth, err := repo.Auth()
+	if err != nil {
+		return err
+	}
+
+	var (
+		pkAuth *PrivateKeyAuth
+		ok     bool
+	)
+	if pkAuth, ok = auth.(*PrivateKeyAuth); !ok {
+		return fmt.Errorf("auth is not castable to PrivateKeyAuth; was a %T", auth)
+	}
+
+	return repoTree.AddCollaborators(ctx, collaborators, pkAuth.Key())
+}
+
+func (c *Client) ListRepoCollaborators(ctx context.Context, repo *Repo) ([]string, error) {
+	repoName, err := repo.Name()
+	if err != nil {
+		return []string{}, err
+	}
+
+	repoTree, err := c.FindRepoTree(ctx, repoName)
+	if err != nil {
+		return []string{}, err
+	}
+
+	auth, err := repo.Auth()
+	if err != nil {
+		return []string{}, err
+	}
+
+	var (
+		pkAuth *PrivateKeyAuth
+		ok     bool
+	)
+	if pkAuth, ok = auth.(*PrivateKeyAuth); !ok {
+		return []string{}, fmt.Errorf("could not cast auth to PrivateKeyAuth; was a %T", auth)
+	}
+
+	return repoTree.ListCollaborators(ctx, pkAuth.Key())
+}
+
+func (c *Client) RemoveRepoCollaborator(ctx context.Context, repo *Repo, collaborators []string) error {
+	repoName, err := repo.Name()
+	if err != nil {
+		return err
+	}
+
+	repoTree, err := c.FindRepoTree(ctx, repoName)
+	if err != nil {
+		return err
+	}
+
+	auth, err := repo.Auth()
+	if err != nil {
+		return err
+	}
+
+	var (
+		pkAuth *PrivateKeyAuth
+		ok     bool
+	)
+	if pkAuth, ok = auth.(*PrivateKeyAuth); !ok {
+		return fmt.Errorf("auth is not castable to PrivateKeyAuth; was a %T", auth)
+	}
+
+	return repoTree.RemoveCollaborators(ctx, collaborators, pkAuth.Key())
 }

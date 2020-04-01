@@ -3,7 +3,6 @@ package namedtree
 import (
 	"context"
 	"crypto/ecdsa"
-	"os"
 	"strings"
 	"time"
 
@@ -13,8 +12,6 @@ import (
 	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
 )
-
-const DefaultObjectStorageType = "siaskynet"
 
 var ErrNotFound = tupelo.ErrNotFound
 
@@ -26,9 +23,9 @@ type Generator struct {
 type NamedTree struct {
 	Name      string
 	ChainTree *consensus.SignedChainTree
+	Tupelo    *tupelo.Client
 
 	genesisKey *ecdsa.PrivateKey
-	client     *tupelo.Client
 	nodeStore  nodestore.DagStore
 	owners     []string
 }
@@ -36,7 +33,7 @@ type NamedTree struct {
 type Options struct {
 	Name              string
 	ObjectStorageType string
-	Client            *tupelo.Client
+	Tupelo            *tupelo.Client
 	NodeStore         nodestore.DagStore
 	Owners            []string
 }
@@ -61,31 +58,14 @@ func (g *Generator) New(ctx context.Context, opts *Options) (*NamedTree, error) 
 		return nil, err
 	}
 
-	repoTxn, err := chaintree.NewSetDataTransaction("dgit/repo", opts.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	if storage, found := os.LookupEnv("DGIT_OBJ_STORAGE"); found {
-		opts.ObjectStorageType = storage
-	}
-	if opts.ObjectStorageType == "" {
-		opts.ObjectStorageType = DefaultObjectStorageType
-	}
-	config := map[string]map[string]string{"objectStorage": {"type": opts.ObjectStorageType}}
-	configTxn, err := chaintree.NewSetDataTransaction("dgit/config", config)
-	if err != nil {
-		return nil, err
-	}
-
 	creationTimestampTxn, err := chaintree.NewSetDataTransaction("dgit/createdAt", time.Now().Unix())
 	if err != nil {
 		return nil, err
 	}
 
-	txns := []*transactions.Transaction{setOwnershipTxn, repoTxn, configTxn, creationTimestampTxn}
+	txns := []*transactions.Transaction{setOwnershipTxn, creationTimestampTxn}
 
-	_, err = opts.Client.PlayTransactions(ctx, chainTree, gKey, txns)
+	_, err = opts.Tupelo.PlayTransactions(ctx, chainTree, gKey, txns)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +74,7 @@ func (g *Generator) New(ctx context.Context, opts *Options) (*NamedTree, error) 
 		Name:       opts.Name,
 		ChainTree:  chainTree,
 		genesisKey: gKey,
-		client:     opts.Client,
+		Tupelo:     opts.Tupelo,
 		nodeStore:  opts.NodeStore,
 		owners:     opts.Owners,
 	}, nil
@@ -133,7 +113,7 @@ func (g *Generator) Find(ctx context.Context, name string) (*NamedTree, error) {
 		Name:       name,
 		ChainTree:  chainTree,
 		genesisKey: gKey,
-		client:     g.Client,
+		Tupelo:     g.Client,
 	}, nil
 }
 
