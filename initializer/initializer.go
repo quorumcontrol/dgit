@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
@@ -297,9 +298,17 @@ func (i *Initializer) determineDgitEndpoint() (*transport.Endpoint, error) {
 		}
 	}
 
+	var suggestedRepoName string
+	username, _ := i.repo.Username()
+	cwd, _ := os.Getwd()
+	if username != "" && cwd != "" {
+		suggestedRepoName = username + "/" + path.Base(cwd)
+	}
+
 	prompt := promptui.Prompt{
 		Label:     stripNewLines(msg.PromptRepoName),
 		Templates: promptTemplates,
+		Default:   suggestedRepoName,
 		Stdin:     i.stdin,
 		Stdout:    i.stdout,
 		Validate: func(input string) error {
