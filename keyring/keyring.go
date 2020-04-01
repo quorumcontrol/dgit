@@ -72,7 +72,10 @@ func migrateOldDefaultKey(kr Keyring, keyName string) (*keyringlib.Item, error) 
 			log.Errorf("error migrating dgit.default key: %v", err)
 			return nil, err
 		}
-		_ = kr.Remove("default")
+		remErr := kr.Remove("default")
+		if remErr != nil {
+			log.Warnf("error removing old dgit.default key: %v", remErr)
+		}
 	}
 
 	return &oldDefault, err

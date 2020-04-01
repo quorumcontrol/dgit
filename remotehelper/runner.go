@@ -305,8 +305,6 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		username = dgitConfig.Option("username")
 	}
 
-	// TODO: What other username fallbacks should we have?
-
 	if username == "" {
 		log.Fatal("No dgit username configured. Run `git config --global dgit.username your-username`.")
 	}
