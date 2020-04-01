@@ -7,7 +7,10 @@ import (
 	keyringlib "github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	logging "github.com/ipfs/go-log"
 )
+
+var log = logging.Logger("dgit.keyring")
 
 type Keyring interface {
 	keyringlib.Keyring
@@ -53,10 +56,38 @@ func Name(kr Keyring) string {
 	return name
 }
 
+func migrateOldDefaultKey(kr Keyring, keyName string) (*keyringlib.Item, error) {
+	oldDefault, err := kr.Get("default")
+	if err == keyringlib.ErrKeyNotFound {
+		log.Debugf("no dgit.default key found")
+		return nil, ErrKeyNotFound
+	}
+
+	if err == nil {
+		log.Debugf("migrating old dgit.default key to dgit.%s", keyName)
+		oldDefault.Key = keyName
+		oldDefault.Label = "dgit." + keyName
+		err = kr.Set(oldDefault)
+		if err != nil {
+			log.Errorf("error migrating dgit.default key: %v", err)
+			return nil, err
+		}
+		_ = kr.Remove("default")
+	}
+
+	return &oldDefault, err
+}
+
 func FindPrivateKey(kr Keyring, keyName string) (key *ecdsa.PrivateKey, err error) {
+	log.Debugf("finding private key %s", keyName)
 	privateKeyItem, err := kr.Get(keyName)
 	if err == keyringlib.ErrKeyNotFound {
-		return nil, ErrKeyNotFound
+		log.Debugf("private key %s not found; attempting to migrate old dgit.default key", keyName)
+		migratedItem, err := migrateOldDefaultKey(kr, keyName)
+		if err != nil {
+			return nil, err
+		}
+		privateKeyItem = *migratedItem
 	}
 
 	privateKeyBytes, err := hexutil.Decode(string(privateKeyItem.Data))
