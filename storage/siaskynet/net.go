@@ -1,13 +1,13 @@
 package siaskynet
 
 import (
-	"bytes"
 	"io"
 	"sync"
 
 	"github.com/NebulousLabs/go-skynet"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/objfile"
+	"github.com/quorumcontrol/dgit/storage"
 	"go.uber.org/zap"
 )
 
@@ -47,21 +47,8 @@ func InitSkynet(uploaderCount, downloaderCount int) *Skynet {
 }
 
 func (s *Skynet) uploadObject(o plumbing.EncodedObject) (string, error) {
-	buf := bytes.NewBuffer(nil)
-
-	writer := objfile.NewWriter(buf)
-	defer writer.Close()
-
-	reader, err := o.Reader()
+	buf, err := storage.ZlibBufferForObject(o)
 	if err != nil {
-		return "", err
-	}
-
-	if err = writer.WriteHeader(o.Type(), o.Size()); err != nil {
-		return "", err
-	}
-
-	if _, err = io.Copy(writer, reader); err != nil {
 		return "", err
 	}
 
