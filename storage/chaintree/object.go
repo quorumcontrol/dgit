@@ -116,25 +116,10 @@ func (s *ObjectStorage) SetEncodedObjectTxn(o plumbing.EncodedObject) (*transact
 		return nil, plumbing.ErrInvalidType
 	}
 
-	buf := bytes.NewBuffer(nil)
-
-	writer := objfile.NewWriter(buf)
-	defer writer.Close()
-
-	reader, err := o.Reader()
+	buf, err := storage.ZlibBufferForObject(o)
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
-
-	if err := writer.WriteHeader(o.Type(), o.Size()); err != nil {
-		return nil, err
-	}
-
-	if _, err = io.Copy(writer, reader); err != nil {
-		return nil, err
-	}
-	writer.Close()
 
 	objectBytes, err := ioutil.ReadAll(buf)
 	if err != nil {
