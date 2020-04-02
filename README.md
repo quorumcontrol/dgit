@@ -2,20 +2,6 @@
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
-## TLDR: just try it!
-#### 1) install dgit
-```
-brew tap quorumcontrol/dgit && brew install dgit
-```
-#### 2) add decentralized ownership & storage to a .git repo ([what's it doing?](#usage))
-```
-dgit init
-```
-#### 3) use git normally with your new decentralized remote
-```
-git push
-```
-
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
@@ -40,14 +26,17 @@ With three simple steps you can create a decentralized mirror of your existing g
 All changes will be automatically propogated to the mirror version and the git services you depend on will be there when you need them.
 
 ### Installation
-A quick install using brew gets us started: 
-`brew tap quorumcontrol/dgit && brew install dgit` <br>
-Or skip the tap and directly install with: 
-`brew install quorumcontrol/dgit/dgit`
+A quick install using [brew](https://brew.sh/) gets you started: 
+```
+brew tap quorumcontrol/dgit && brew install dgit
+```
+*Or if you don't have homebrew check out our [simple manual installation instructions](https://github.com/quorumcontrol/dgit/wiki/dgit-Install-without-Homebrew).*
 
 ### Usage
-Next you are going to run the init command in each repo you want to make decentralized:
-`dgit init`
+Next you will need to initialize each repo you want to make decentralized:
+```
+dgit init
+```
 
 This command does three things.<br>
 1. <b>dgit</b> sets the appropriate remote urls in your repo's .git/config file.<br>
@@ -55,12 +44,14 @@ This command does three things.<br>
 3. <b>dgit</b> stores that repo on Skynet, the decentralized storage solution from Sia. 
 
 From there you can proceed with normal git commands.<br>
+
 If you ever want to pull from the mirror you can specify the mirror with a "dgit:".<br>
 As an example:
 `git clone dgit://your_username/repo_name`
 <br>
+
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
-a simple github rule as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your  dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
+a simple github action as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed yourde dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
 
 #### Collaborators
 
@@ -71,6 +62,10 @@ You can manage your repo's team of collaborators with the `dgit team` command:
 * `dgit team remove [usernames]`
 
 Anyone on the team will be allowed to push to the repo in the current directory.
+
+### FAQ
+
+You can find answers to some of the most [frequently asked questions on the wiki](https://github.com/quorumcontrol/dgit/wiki/Frequently-Asked-Questions).
 
 ### Built With
 

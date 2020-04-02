@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/objfile"
 	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	logging "github.com/ipfs/go-log"
@@ -35,6 +36,29 @@ func ObjectReadPath(h plumbing.Hash) []string {
 
 func ObjectWritePath(h plumbing.Hash) string {
 	return strings.Join(ObjectReadPath(h)[2:], "/")
+}
+
+func ZlibBufferForObject(o plumbing.EncodedObject) (*bytes.Buffer, error) {
+	buf := bytes.NewBuffer(nil)
+
+	writer := objfile.NewWriter(buf)
+	defer writer.Close()
+
+	reader, err := o.Reader()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	if err := writer.WriteHeader(o.Type(), o.Size()); err != nil {
+		return nil, err
+	}
+
+	if _, err = io.Copy(writer, reader); err != nil {
+		return nil, err
+	}
+
+	return buf, err
 }
 
 func (s *ChaintreeObjectStorage) Chaintree() *chaintree.ChainTree {
