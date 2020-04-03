@@ -71,6 +71,13 @@ func (s *ReferenceStorage) CheckAndSetReference(ref *plumbing.Reference, old *pl
 
 // Reference returns the reference for a given reference name.
 func (s *ReferenceStorage) Reference(n plumbing.ReferenceName) (*plumbing.Reference, error) {
+	// TODO: store default branch in chaintree as HEAD
+	// random sha1s are showing up as HEAD from mystery code,
+	// so for now, disable HEAD requests
+	if n.String() == plumbing.HEAD.String() {
+		return nil, plumbing.ErrReferenceNotFound
+	}
+
 	refPath := append([]string{"tree", "data"}, strings.Split(n.String(), "/")...)
 	valUncast, _, err := s.ChainTree.ChainTree.Dag.Resolve(context.Background(), refPath)
 	if err != nil {
