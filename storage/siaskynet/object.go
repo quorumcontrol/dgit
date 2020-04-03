@@ -1,6 +1,7 @@
 package siaskynet
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -310,7 +311,8 @@ func (s *ObjectStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (p
 	s.log.Debugf("downloading %s from Skynet at %s", h, link)
 	o, err := downloadObjectFromSkynet(s.skynet, link)
 	if err != nil {
-		s.log.Errorf("could not download object %s from Skynet at %s: %w", o.Hash(), link, err)
+		err = fmt.Errorf("could not download object %s from Skynet at %s: %w", h.String(), link, err)
+		s.log.Errorf(err.Error())
 		return nil, err
 	}
 
