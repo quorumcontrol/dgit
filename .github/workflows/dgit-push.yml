@@ -7,8 +7,11 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Push to dgit
       uses: quorumcontrol/dgit-github-action@master
       env:
+        GIT_PUSH_ARGS: "--force"
         DGIT_PRIVATE_KEY: ${{ secrets.DGIT_PRIVATE_KEY }}
         DGIT_LOG_LEVEL: debug
