@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
@@ -85,10 +86,21 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 	reponame := strings.Join(strings.Split(opts.Name, "/")[1:], "/")
 
 	userChainTree, err := usertree.Find(ctx, username, opts.Tupelo)
+	if err == usertree.ErrNotFound {
+		return nil, fmt.Errorf("user %s does not exist (%w)", username, err)
+	}
 	if err != nil {
 		return nil, err
 	}
 	log.Debugf("user chaintree did: %s", userChainTree.ChainTree.MustId())
+
+	isOwner, err := userChainTree.IsOwner(ctx, crypto.PubkeyToAddress(ownerKey.PublicKey).String())
+	if err != nil {
+		return nil, err
+	}
+	if !isOwner {
+		return nil, fmt.Errorf("can not create repo %s, current user is not an owner of %s", opts.Name, username)
+	}
 
 	userRepos, err := userChainTree.Repos(ctx)
 	if err != nil {
