@@ -298,7 +298,7 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		return nil, err
 	}
 
-	dgitConfig := repoConfig.Raw.Section(constants.DgitConfigSection)
+	dgitConfig := repoConfig.Merged.Section(constants.DgitConfigSection)
 
 	var username string
 	if dgitConfig != nil {

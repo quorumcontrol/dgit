@@ -787,8 +787,8 @@ github.com/quorumcontrol/chaintree v0.9.4/go.mod h1:XZMtCWpLgWM6UVSRk431n+HIjJcn
 github.com/quorumcontrol/chaintree v1.0.2-0.20200123185821-453f01cdbbb9/go.mod h1:PHUsyPwSBW+m9cuE5isdhJ8ZnSkFRqD6qQo4Oxva2Yw=
 github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9 h1:7Rl0EE1sR8NdjwIw1er+018yDXXHbnvk03pGbEQPXOQ=
 github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9/go.mod h1:PHUsyPwSBW+m9cuE5isdhJ8ZnSkFRqD6qQo4Oxva2Yw=
-github.com/quorumcontrol/go-git/v5 v5.0.1-0.20200330190121-d2b81490dedb h1:/EPZMYH++tFnfF/csPYIy0BBQZbvHAa3FHN5GLILYGM=
-github.com/quorumcontrol/go-git/v5 v5.0.1-0.20200330190121-d2b81490dedb/go.mod h1:s58ZW7fdZEZcHqbLuDKI7EGsi928Evi5jNWua7t1LBY=
+github.com/quorumcontrol/go-git/v5 v5.0.1-0.20200406172056-231a188e4899 h1:tAVtM8piSRGCB6jRRBs91P/jaqUHgMTDdSCq0X1yuQ8=
+github.com/quorumcontrol/go-git/v5 v5.0.1-0.20200406172056-231a188e4899/go.mod h1:oYD8y9kWsGINPFJoLdaScGCN6dlKg23blmClfZwtUVA=
 github.com/quorumcontrol/go-keychain v0.0.0-20200324182052-9544b7eee399 h1:B9t4WAQXTsfRW6OlyKI3KK8vTAkZu5aIKtohJE1sDsY=
 github.com/quorumcontrol/go-keychain v0.0.0-20200324182052-9544b7eee399/go.mod h1:qKNyYzPILzVN3/4yQPjKdwuia7SMNzD+vazzCo1WffI=
 github.com/quorumcontrol/go-skynet v0.0.0-20200312164139-76fb137005c8 h1:X6zp2hKwK51po/w5z+XmKtR2sBijGD7tWHoIEobzpKw=

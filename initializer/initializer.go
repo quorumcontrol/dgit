@@ -113,7 +113,7 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 		return "", fmt.Errorf("could not get repo config: %w", err)
 	}
 
-	dgitConfig := repoConfig.Raw.Section(constants.DgitConfigSection)
+	dgitConfig := repoConfig.Merged.Section(constants.DgitConfigSection)
 
 	var username string
 	if dgitConfig != nil {
@@ -122,7 +122,7 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 
 	// try looking up the GitHub username for the default
 	if username == "" {
-		if ghConfig := repoConfig.Raw.Section("github"); ghConfig != nil {
+		if ghConfig := repoConfig.Merged.Section("github"); ghConfig != nil {
 			username = ghConfig.Option("user")
 		}
 	}
@@ -140,16 +140,18 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 			return nil
 		},
 	}
-	newUsername, err := prompt.Run()
+	username, err = prompt.Run()
 	fmt.Fprintln(i.stdout)
 	if err != nil {
 		return "", fmt.Errorf("bad username: %w", err)
 	}
 
-	if username != "" {
+	globalUsername := repoConfig.Merged.GlobalConfig().Section(constants.DgitConfigSection).Option("username")
+
+	if username != "" && username != globalUsername {
 		log.Debugf("adding dgit.username to repo config")
-		newConfig := repoConfig.Raw.AddOption(constants.DgitConfigSection, configformat.NoSubsection, "username", newUsername)
-		repoConfig.Raw = newConfig
+		newConfig := repoConfig.Merged.LocalConfig().AddOption(constants.DgitConfigSection, configformat.NoSubsection, "username", username)
+		repoConfig.Merged.SetLocalConfig(newConfig)
 		err = repoConfig.Validate()
 		if err != nil {
 			return "", err
@@ -160,7 +162,7 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 		}
 	}
 
-	return newUsername, nil
+	return username, nil
 }
 
 func (i *Initializer) getAuth() (transport.AuthMethod, error) {

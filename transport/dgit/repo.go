@@ -125,7 +125,7 @@ func (r *Repo) Username() (string, error) {
 		return "", err
 	}
 
-	dgitConfig := repoConfig.Raw.Section(constants.DgitConfigSection)
+	dgitConfig := repoConfig.Merged.Section(constants.DgitConfigSection)
 
 	if dgitConfig == nil {
 		return "", fmt.Errorf("no dgit configuration found; run `git config --global dgit.username your-username`")
