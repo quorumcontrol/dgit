@@ -3,6 +3,7 @@ package dgit
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -132,6 +133,11 @@ func (r *Repo) Username() (string, error) {
 	}
 
 	username := dgitConfig.Option("username")
+
+	envUsername := os.Getenv("DGIT_USERNAME")
+	if envUsername != "" {
+		username = envUsername
+	}
 
 	if username == "" {
 		return "", fmt.Errorf("no dgit username found; run `git config --global dgit.username your-username`")

@@ -253,8 +253,6 @@ func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) e
 			return fmt.Errorf("Command '%s' not handled", command)
 		}
 	}
-
-	return nil
 }
 
 func (r *Runner) respond(format string, a ...interface{}) (n int, err error) {
@@ -303,6 +301,11 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 	var username string
 	if dgitConfig != nil {
 		username = dgitConfig.Option("username")
+	}
+
+	envUsername := os.Getenv("DGIT_USERNAME")
+	if envUsername != "" {
+		username = envUsername
 	}
 
 	if username == "" {

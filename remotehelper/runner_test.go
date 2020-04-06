@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os"
 	"sync"
 	"testing"
 
@@ -26,6 +27,11 @@ func TestRunnerIntegration(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	err := os.Setenv("DGIT_OBJ_STORAGE", "chaintree")
+	require.Nil(t, err)
+	err = os.Setenv("DGIT_USERNAME", "testymctestface")
+	require.Nil(t, err)
 
 	client, err := dgit.NewLocalClient(ctx)
 	require.Nil(t, err)
@@ -61,7 +67,7 @@ func TestRunnerIntegration(t *testing.T) {
 	require.NotNil(t, userMsgReader)
 
 	kr := keyring.NewMemory()
-	_, isNew, err := keyring.FindOrCreatePrivateKey(kr, "test")
+	_, isNew, err := keyring.FindOrCreatePrivateKey(kr, "testymctestface")
 	require.Nil(t, err)
 	require.True(t, isNew)
 
