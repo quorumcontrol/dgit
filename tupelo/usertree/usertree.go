@@ -16,9 +16,7 @@ func init() {
 	namedTreeGen = &namedtree.Generator{Namespace: userSalt}
 }
 
-type Options struct {
-	*namedtree.Options
-}
+type Options namedtree.Options
 
 func Find(ctx context.Context, username string, client *tupelo.Client) (*namedtree.NamedTree, error) {
 	namedTreeGen.Client = client
@@ -26,7 +24,8 @@ func Find(ctx context.Context, username string, client *tupelo.Client) (*namedtr
 }
 
 func Create(ctx context.Context, opts *Options) (*namedtree.NamedTree, error) {
-	namedTree, err := namedTreeGen.New(ctx, opts.Options)
+	ntOpts := namedtree.Options(*opts)
+	namedTree, err := namedTreeGen.New(ctx, &ntOpts)
 	if err != nil {
 		return nil, err
 	}

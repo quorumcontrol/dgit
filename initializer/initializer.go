@@ -192,12 +192,10 @@ func (i *Initializer) getAuth() (transport.AuthMethod, error) {
 		ctx := context.Background()
 
 		opts := &usertree.Options{
-			Options: &namedtree.Options{
-				Name:      username,
-				Tupelo:    i.tupelo,
-				NodeStore: i.nodestore,
-				Owners:    []string{i.auth.String()},
-			},
+			Name:      username,
+			Tupelo:    i.tupelo,
+			NodeStore: i.nodestore,
+			Owners:    []string{i.auth.String()},
 		}
 		_, err := usertree.Create(ctx, opts)
 		if err != nil {

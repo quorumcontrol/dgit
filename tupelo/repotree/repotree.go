@@ -31,9 +31,7 @@ func init() {
 	namedTreeGen = &namedtree.Generator{Namespace: repoSalt}
 }
 
-type Options struct {
-	*namedtree.Options
-}
+type Options namedtree.Options
 
 type RepoTree struct {
 	*namedtree.NamedTree
@@ -49,8 +47,9 @@ func Find(ctx context.Context, repo string, client *tupelo.Client) (*RepoTree, e
 }
 
 func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*RepoTree, error) {
-	log.Debugf("creating new repotree with options: %+v", opts.Options)
-	namedTree, err := namedTreeGen.New(ctx, opts.Options)
+	log.Debugf("creating new repotree with options: %+v", opts)
+	ntOpts := namedtree.Options(*opts)
+	namedTree, err := namedTreeGen.New(ctx, &ntOpts)
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,6 @@ import (
 
 	"github.com/quorumcontrol/dgit/constants"
 	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
-	"github.com/quorumcontrol/dgit/tupelo/namedtree"
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
 )
 
@@ -73,12 +72,10 @@ func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoin
 		return nil, fmt.Errorf("unable to cast %T to PrivateKeyAuth", auth)
 	}
 	return repotree.Create(ctx, &repotree.Options{
-		Options: &namedtree.Options{
-			Name:      endpoint.Host + endpoint.Path,
-			Tupelo:    c.Tupelo,
-			NodeStore: c.Nodestore,
-			Owners:    []string{auth.String()},
-		},
+		Name:      endpoint.Host + endpoint.Path,
+		Tupelo:    c.Tupelo,
+		NodeStore: c.Nodestore,
+		Owners:    []string{auth.String()},
 	}, pkAuth.Key())
 }
 
