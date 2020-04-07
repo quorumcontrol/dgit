@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -16,10 +17,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	logging "github.com/ipfs/go-log"
 	"github.com/stretchr/testify/require"
 
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/transport/dgit"
+	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
 
 func TestRunnerIntegration(t *testing.T) {
@@ -30,12 +33,23 @@ func TestRunnerIntegration(t *testing.T) {
 
 	err := os.Setenv("DGIT_OBJ_STORAGE", "chaintree")
 	require.Nil(t, err)
-	err = os.Setenv("DGIT_USERNAME", "testymctestface")
+
+	// Just generating a random username
+	key, err := crypto.GenerateKey()
+	require.Nil(t, err)
+	username := strings.ToLower(crypto.PubkeyToAddress(key.PublicKey).String()[20:])
+
+	err = os.Setenv("DGIT_USERNAME", username)
 	require.Nil(t, err)
 
 	client, err := dgit.NewLocalClient(ctx)
 	require.Nil(t, err)
 	client.RegisterAsDefault()
+
+	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
+	if ok {
+		require.Nil(t, logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr)))
+	}
 
 	localRepoFs := fixtures.Basic().One().DotGit()
 	store := filesystem.NewStorageWithOptions(localRepoFs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true})
@@ -43,11 +57,8 @@ func TestRunnerIntegration(t *testing.T) {
 	local, err := git.Open(store, nil)
 	require.Nil(t, err)
 
-	key, err := crypto.GenerateKey()
-	require.Nil(t, err)
-
 	// Just a random dgit url
-	endpoint, err := transport.NewEndpoint("dgit://" + crypto.PubkeyToAddress(key.PublicKey).String() + "/test")
+	endpoint, err := transport.NewEndpoint("dgit://" + username + "/test")
 	require.Nil(t, err)
 
 	remoteConfig := &config.RemoteConfig{
@@ -67,12 +78,18 @@ func TestRunnerIntegration(t *testing.T) {
 	require.NotNil(t, userMsgReader)
 
 	kr := keyring.NewMemory()
-	_, isNew, err := keyring.FindOrCreatePrivateKey(kr, "testymctestface")
+	pkey, isNew, err := keyring.FindOrCreatePrivateKey(kr, username)
 	require.Nil(t, err)
 	require.True(t, isNew)
+	auth := dgit.NewPrivateKeyAuth(pkey)
 
-	// _, err = client.CreateRepoTree(ctx, endpoint, dgit.NewPrivateKeyAuth(pkey), "chaintree")
-	// require.Nil(t, err)
+	_, err = usertree.Create(ctx, &usertree.Options{
+		Name:      username,
+		Tupelo:    client.Tupelo,
+		NodeStore: client.Nodestore,
+		Owners:    []string{auth.String()},
+	})
+	require.Nil(t, err)
 
 	runner := &Runner{
 		local:   local,

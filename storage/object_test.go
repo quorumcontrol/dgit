@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -18,8 +17,6 @@ func TestZlibBufferForObject(t *testing.T) {
 
 	buf, err := ZlibBufferForObject(o)
 	require.Nil(t, err)
-
-	fmt.Printf("%v", buf.Bytes())
 
 	require.Equal(t, buf.Bytes(), []byte{120, 156, 74, 202, 201, 79, 82, 48, 52, 97, 240, 72, 205, 201, 201, 215, 81, 8, 207, 47, 202, 73, 81, 228, 2, 4, 0, 0, 255, 255, 78, 21, 6, 152})
 }
