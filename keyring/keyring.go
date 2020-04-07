@@ -7,7 +7,10 @@ import (
 	keyringlib "github.com/99designs/keyring"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	logging "github.com/ipfs/go-log"
 )
+
+var log = logging.Logger("dgit.keyring")
 
 type Keyring interface {
 	keyringlib.Keyring
@@ -35,12 +38,14 @@ var keyName = "default"
 var ErrKeyNotFound = keyringlib.ErrKeyNotFound
 
 func NewDefault() (Keyring, error) {
-	return keyringlib.Open(keyringlib.Config{
+	kr, err := keyringlib.Open(keyringlib.Config{
 		ServiceName:                    "dgit",
 		KeychainTrustApplication:       true,
 		KeychainAccessibleWhenUnlocked: true,
 		AllowedBackends:                secureKeyringBackends,
 	})
+	log.Info("keyring provider: " + Name(kr))
+	return kr, err
 }
 
 func NewMemory() Keyring {
