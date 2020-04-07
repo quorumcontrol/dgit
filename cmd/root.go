@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	logging "github.com/ipfs/go-log"
@@ -21,11 +22,18 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	setLogLevel()
+	globalDebugLogs()
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func globalDebugLogs() {
+	log.Infof("dgit version: " + Version)
+	log.Infof("goos: " + runtime.GOOS)
+	log.Infof("goarch: " + runtime.GOARCH)
 }
 
 func setLogLevel() {
