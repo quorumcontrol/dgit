@@ -54,7 +54,7 @@ func Find(ctx context.Context, repo string, client *tupelo.Client) (*RepoTree, e
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("user chaintree did: %s", userChainTree.ChainTree.MustId())
+	log.Debugf("user chaintree found for %s - %s", username, userChainTree.ChainTree.MustId())
 
 	userRepos, err := userChainTree.Repos(ctx)
 	if err != nil {
@@ -70,7 +70,7 @@ func Find(ctx context.Context, repo string, client *tupelo.Client) (*RepoTree, e
 	if err == tupelo.ErrNotFound {
 		return nil, ErrNotFound
 	}
-	log.Debugf("repo chaintree found, did: %s", chainTree.MustId())
+	log.Debugf("repo chaintree found for %s - %s", repo, chainTree.MustId())
 
 	return &RepoTree{
 		Name:      repo,
@@ -92,7 +92,7 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("user chaintree did: %s", userChainTree.ChainTree.MustId())
+	log.Debugf("user chaintree found for %s - %s", username, userChainTree.ChainTree.MustId())
 
 	isOwner, err := userChainTree.IsOwner(ctx, crypto.PubkeyToAddress(ownerKey.PublicKey).String())
 	if err != nil {
