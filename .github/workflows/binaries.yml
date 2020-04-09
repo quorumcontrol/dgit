@@ -27,3 +27,45 @@ jobs:
           asset_path: ./dgit.tar.gz
           asset_name: dgit-${{ runner.os }}-x86_64.tar.gz
           asset_content_type: application/x-gtar
+  release-linux-arm:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: setup Go
+        uses: actions/setup-go@v2-beta
+        with:
+          go-version: '^1.14.0'
+      - name: compile & make tarballs
+        run: make tarball-linux-arm
+      - name: upload armv6 release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist/armv6/dgit.tar.gz
+          asset_name: dgit-Linux-armv6.tar.gz
+          asset_content_type: application/x-gtar
+      - name: upload armv7 release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist/armv7/dgit.tar.gz
+          asset_name: dgit-Linux-armv7.tar.gz
+          asset_content_type: application/x-gtar
+      - name: upload arm64v8 release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist/arm64v8/dgit.tar.gz
+          asset_name: dgit-Linux-arm64v8.tar.gz
+          asset_content_type: application/x-gtar
+
+
+
+
