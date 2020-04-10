@@ -5,23 +5,29 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"regexp"
-	"sort"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	configformat "github.com/go-git/go-git/v5/plumbing/format/config"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	logging "github.com/ipfs/go-log"
 	"github.com/manifoldco/promptui"
+	"github.com/quorumcontrol/chaintree/nodestore"
+	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+
+	"github.com/quorumcontrol/dgit/constants"
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/msg"
 	"github.com/quorumcontrol/dgit/transport/dgit"
+	"github.com/quorumcontrol/dgit/tupelo/namedtree"
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
-	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
 
-const dgitRemote = "dgit"
+var log = logging.Logger("dgit.initializer")
 
 var validRepoName = regexp.MustCompile(`^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+`)
 
@@ -33,22 +39,31 @@ var promptTemplates = &promptui.PromptTemplates{
 	Success: `{{ . }} `,
 }
 
-type Initializer struct {
-	stdin    io.ReadCloser
-	stdout   io.WriteCloser
-	stderr   io.WriteCloser
-	keyring  keyring.Keyring
-	auth     transport.AuthMethod
-	repo     *git.Repository
-	endpoint *transport.Endpoint
+type Options struct {
+	Repo      *dgit.Repo
+	Tupelo    *tupelo.Client
+	NodeStore nodestore.DagStore
 }
 
-func Init(ctx context.Context, repo *git.Repository, args []string) error {
+type Initializer struct {
+	stdin     io.ReadCloser
+	stdout    io.WriteCloser
+	stderr    io.WriteCloser
+	keyring   keyring.Keyring
+	auth      transport.AuthMethod
+	repo      *dgit.Repo
+	tupelo    *tupelo.Client
+	nodestore nodestore.DagStore
+}
+
+func Init(ctx context.Context, opts *Options, args []string) error {
 	i := &Initializer{
-		stdin:  os.Stdin,
-		stdout: os.Stdout,
-		stderr: os.Stderr,
-		repo:   repo,
+		stdin:     os.Stdin,
+		stdout:    os.Stdout,
+		stderr:    os.Stderr,
+		repo:      opts.Repo,
+		tupelo:    opts.Tupelo,
+		nodestore: opts.NodeStore,
 	}
 	return i.Init(ctx, args)
 }
@@ -63,7 +78,7 @@ func (i *Initializer) Init(ctx context.Context, args []string) error {
 	}
 
 	// determine endpoint, prompt user as needed
-	endpoint, err := i.getEndpoint()
+	_, err = i.getEndpoint()
 	if err != nil {
 		return err
 	}
@@ -84,12 +99,70 @@ func (i *Initializer) Init(ctx context.Context, args []string) error {
 	}
 
 	msg.Fprint(i.stdout, msg.FinalInstructions, map[string]interface{}{
-		"repo":    repoNameFor(endpoint),
-		"repourl": endpoint.String(),
+		"repo":    i.repo.MustName(),
+		"repourl": i.repo.MustURL(),
 	})
 	fmt.Fprintln(os.Stdout)
 
 	return nil
+}
+
+func (i *Initializer) findOrRequestUsername() (string, error) {
+	repoConfig, err := i.repo.Config()
+	if err != nil {
+		return "", fmt.Errorf("could not get repo config: %w", err)
+	}
+
+	dgitConfig := repoConfig.Merged.Section(constants.DgitConfigSection)
+
+	var username string
+	if dgitConfig != nil {
+		username = dgitConfig.Option("username")
+	}
+
+	// try looking up the GitHub username for the default
+	if username == "" {
+		if ghConfig := repoConfig.Merged.Section("github"); ghConfig != nil {
+			username = ghConfig.Option("user")
+		}
+	}
+
+	prompt := promptui.Prompt{
+		Label:     stripNewLines(msg.UsernamePrompt),
+		Templates: promptTemplates,
+		Default:   username,
+		Stdin:     i.stdin,
+		Stdout:    i.stdout,
+		Validate: func(input string) error {
+			if input == "" {
+				return fmt.Errorf("cannot be blank")
+			}
+			return nil
+		},
+	}
+	username, err = prompt.Run()
+	fmt.Fprintln(i.stdout)
+	if err != nil {
+		return "", fmt.Errorf("bad username: %w", err)
+	}
+
+	globalUsername := repoConfig.Merged.GlobalConfig().Section(constants.DgitConfigSection).Option("username")
+
+	if username != "" && username != globalUsername {
+		log.Debugf("adding dgit.username to repo config")
+		newConfig := repoConfig.Merged.AddOption(configformat.LocalScope, constants.DgitConfigSection, configformat.NoSubsection, "username", username)
+		repoConfig.Merged.SetLocalConfig(newConfig)
+		err = repoConfig.Validate()
+		if err != nil {
+			return "", err
+		}
+		err = i.repo.Storer.SetConfig(repoConfig)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return username, nil
 }
 
 func (i *Initializer) getAuth() (transport.AuthMethod, error) {
@@ -103,41 +176,60 @@ func (i *Initializer) getAuth() (transport.AuthMethod, error) {
 		return nil, fmt.Errorf("Error with keyring: %v", err)
 	}
 
-	privateKey, isNew, err := keyring.FindOrCreatePrivateKey(kr)
+	username, err := i.findOrRequestUsername()
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, isNew, err := keyring.FindOrCreatePrivateKey(kr, username)
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching key from keyring: %v", err)
 	}
 
+	i.auth = dgit.NewPrivateKeyAuth(privateKey)
+
 	if isNew {
+		ctx := context.Background()
+
+		opts := &usertree.Options{
+			Name:      username,
+			Tupelo:    i.tupelo,
+			NodeStore: i.nodestore,
+			Owners:    []string{i.auth.String()},
+		}
+		_, err := usertree.Create(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+
 		msg.Fprint(i.stdout, msg.Welcome, map[string]interface{}{
 			"keyringProvider": keyring.Name(kr),
-			"userAddress":     crypto.PubkeyToAddress(privateKey.PublicKey).String(),
+			"username":        username,
 		})
 		fmt.Fprintln(i.stdout)
 	}
 
-	i.auth = dgit.NewPrivateKeyAuth(privateKey)
 	return i.auth, nil
 }
 
-func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*consensus.SignedChainTree, error) {
+func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*repotree.RepoTree, error) {
 	client, err := dgit.Default()
 	if err != nil {
 		return nil, err
 	}
 
-	endpoint, err := i.getEndpoint()
+	_, err = i.getEndpoint()
 	if err != nil {
 		return nil, err
 	}
 
-	tree, err := client.FindRepoTree(ctx, repoNameFor(endpoint))
+	tree, err := client.FindRepoTree(ctx, i.repo.MustName())
 	// repo already exists, return out
 	if err == nil && tree != nil {
 		return tree, nil
 	}
 	// a real error, return
-	if err != repotree.ErrNotFound {
+	if err != namedtree.ErrNotFound {
 		return nil, err
 	}
 
@@ -147,14 +239,15 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*consensus.Sign
 	}
 
 	// repo doesn't exist, create it
-	newTree, err := client.CreateRepoTree(ctx, endpoint, auth, "siaskynet")
+	log.Debugf("creating new repo tree with endpoint %+v and auth %+v", i.repo.MustEndpoint(), auth)
+	newTree, err := client.CreateRepoTree(ctx, i.repo.MustEndpoint(), auth)
 	if err != nil {
 		return nil, err
 	}
 
 	msg.Fprint(i.stdout, msg.RepoCreated, map[string]interface{}{
-		"did":  newTree.MustId(),
-		"repo": repoNameFor(endpoint),
+		"did":  newTree.Did(),
+		"repo": i.repo.MustName(),
 	})
 	fmt.Fprintln(i.stdout)
 
@@ -162,43 +255,29 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*consensus.Sign
 }
 
 func (i *Initializer) getEndpoint() (*transport.Endpoint, error) {
-	var err error
-	if i.endpoint == nil {
-		i.endpoint, err = i.determineDgitEndpint()
+	rep, err := i.repo.Endpoint()
+
+	if err == dgit.ErrEndpointNotFound {
+		rep, err = i.determineDgitEndpoint()
 	}
-	return i.endpoint, err
+
+	if err != nil {
+		return nil, err
+	}
+
+	if rep != nil {
+		i.repo.SetEndpoint(rep)
+	}
+
+	return rep, nil
 }
 
-func (i *Initializer) determineDgitEndpint() (*transport.Endpoint, error) {
+func (i *Initializer) determineDgitEndpoint() (*transport.Endpoint, error) {
 	var dgitEndpoint *transport.Endpoint
 
 	remotes, err := i.repo.Remotes()
 	if err != nil {
 		return nil, err
-	}
-
-	// get remotes sorted by dgit, then origin, then rest
-	sort.Slice(remotes, func(i, j int) bool {
-		iName := remotes[i].Config().Name
-		jName := remotes[j].Config().Name
-		if iName == "origin" && jName == dgitRemote {
-			return false
-		}
-		return iName == "origin" || iName == dgitRemote
-	})
-
-	dgitUrls := []string{}
-
-	for _, remote := range remotes {
-		for _, url := range remote.Config().URLs {
-			if strings.HasPrefix(url, dgit.Protocol()) {
-				dgitUrls = append(dgitUrls, url)
-			}
-		}
-	}
-
-	if len(dgitUrls) > 0 {
-		return transport.NewEndpoint(dgitUrls[0])
 	}
 
 	if len(remotes) > 0 {
@@ -234,9 +313,17 @@ func (i *Initializer) determineDgitEndpint() (*transport.Endpoint, error) {
 		}
 	}
 
+	var suggestedRepoName string
+	username, _ := i.repo.Username()
+	cwd, _ := os.Getwd()
+	if username != "" && cwd != "" {
+		suggestedRepoName = username + "/" + path.Base(cwd)
+	}
+
 	prompt := promptui.Prompt{
 		Label:     stripNewLines(msg.PromptRepoName),
 		Templates: promptTemplates,
+		Default:   suggestedRepoName,
 		Stdin:     i.stdin,
 		Stdout:    i.stdout,
 		Validate: func(input string) error {
@@ -269,13 +356,13 @@ func (i *Initializer) addDgitPushToRemote(ctx context.Context, remoteName string
 	}
 	remoteConfig := remote.Config()
 
-	endpoint, err := i.getEndpoint()
+	_, err = i.getEndpoint()
 	if err != nil {
 		return err
 	}
 
 	for _, url := range remoteConfig.URLs {
-		if url == endpoint.String() {
+		if url == i.repo.MustURL() {
 			// already has dgit url, no need to add another
 			return nil
 		}
@@ -283,8 +370,8 @@ func (i *Initializer) addDgitPushToRemote(ctx context.Context, remoteName string
 
 	msg.Fprint(i.stdout, msg.AddDgitToRemote, map[string]interface{}{
 		"remote":  remoteConfig.Name,
-		"repo":    repoNameFor(endpoint),
-		"repourl": endpoint.String(),
+		"repo":    i.repo.MustName(),
+		"repourl": i.repo.MustURL(),
 	})
 	fmt.Fprintln(i.stdout)
 
@@ -306,7 +393,7 @@ func (i *Initializer) addDgitPushToRemote(ctx context.Context, remoteName string
 		return nil
 	}
 
-	remoteConfig.URLs = append(remoteConfig.URLs, endpoint.String())
+	remoteConfig.URLs = append(remoteConfig.URLs, i.repo.MustURL())
 
 	newConfig, err := i.repo.Config()
 	if err != nil {
@@ -325,27 +412,27 @@ func (i *Initializer) addDgitPushToRemote(ctx context.Context, remoteName string
 
 	msg.Fprint(i.stdout, msg.AddedDgitToRemote, map[string]interface{}{
 		"remote":  remoteConfig.Name,
-		"repo":    repoNameFor(endpoint),
-		"repourl": endpoint.String(),
+		"repo":    i.repo.MustName(),
+		"repourl": i.repo.MustURL(),
 	})
 	fmt.Fprintln(i.stdout)
 	return nil
 }
 
 func (i *Initializer) addDgitRemote(ctx context.Context) error {
-	_, err := i.repo.Remote(dgitRemote)
+	_, err := i.repo.Remote(constants.DgitRemote)
 	if err != git.ErrRemoteNotFound {
 		return err
 	}
 
-	endpoint, err := i.getEndpoint()
+	_, err = i.getEndpoint()
 	if err != nil {
 		return err
 	}
 
 	remoteConfig := &config.RemoteConfig{
-		Name: dgitRemote,
-		URLs: []string{endpoint.String()},
+		Name: constants.DgitRemote,
+		URLs: []string{i.repo.MustURL()},
 	}
 	err = remoteConfig.Validate()
 	if err != nil {
@@ -354,8 +441,8 @@ func (i *Initializer) addDgitRemote(ctx context.Context) error {
 
 	msg.Fprint(i.stdout, msg.AddDgitRemote, map[string]interface{}{
 		"remote":  remoteConfig.Name,
-		"repo":    repoNameFor(endpoint),
-		"repourl": endpoint.String(),
+		"repo":    i.repo.MustName(),
+		"repourl": i.repo.MustURL(),
 	})
 	fmt.Fprintln(i.stdout)
 
@@ -394,8 +481,8 @@ func (i *Initializer) addDgitRemote(ctx context.Context) error {
 
 	msg.Fprint(i.stdout, msg.AddedDgitRemote, map[string]interface{}{
 		"remote":  remoteConfig.Name,
-		"repo":    repoNameFor(endpoint),
-		"repourl": endpoint.String(),
+		"repo":    i.repo.MustName(),
+		"repourl": i.repo.MustURL(),
 	})
 	fmt.Fprintln(i.stdout)
 	return nil

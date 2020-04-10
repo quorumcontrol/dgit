@@ -27,13 +27,13 @@ dist/arm64v%/dgit: go.mod go.sum $(gosources)
 build-linux-arm: dist/armv6/dgit dist/armv7/dgit dist/arm64v8/dgit
 
 $(FIRSTGOPATH)/bin/dgit: dgit
-	cp dgit $(FIRSTGOPATH)/bin/
+	cp $< $(FIRSTGOPATH)/bin/$<
 
-$(FIRSTGOPATH)/bin/git-remote-dgit:
-	cp git-remote-dgit $(FIRSTGOPATH)/bin/
+$(FIRSTGOPATH)/bin/git-remote-dgit: git-remote-dgit
+	cp $< $(FIRSTGOPATH)/bin/$<
 
 dgit.tar.gz: dgit git-remote-dgit
-	tar -czvf dgit.tar.gz dgit git-remote-dgit
+	tar -czvf dgit.tar.gz $^
 
 dist/armv%/dgit.tar.gz: dist/armv%/dgit git-remote-dgit
 	tar -czvf $@ $^

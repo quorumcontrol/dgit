@@ -1,10 +1,6 @@
 bazil.org/fuse v0.0.0-20180421153158-65cc252bf669/go.mod h1:Xbm+BRKSBEpa4q4hTSxohYNQpsxXPbPry4JJWOB3LB8=
 cloud.google.com/go v0.26.0 h1:e0WKqKTd5BnrG8aKH3J3h+QvEIQtSUcf2n5UZ5ZgLtQ=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 h1:/vQbFIOMbk2FiG/kXiLl8BRyzTWDw7gX/Hz7Dd5eDMs=
-github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4/go.mod h1:hN7oaIRCjzsZ2dE+yG5k+rsdt3qcwykqK6HVGcKwsw4=
-github.com/99designs/keyring v1.1.4 h1:x0g0zQ9bQKgNsLo0XSXAy1H8Q1RG/td+5OXJt+Ci8b8=
-github.com/99designs/keyring v1.1.4/go.mod h1:657DQuMrBZRtuL/voxVyiyb6zpMehlm5vLB9Qwrv904=
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 h1:HD8gA2tkByhMAwYaFAX9w2l7vxvBQ5NMoxDrkhqhtn4=
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
@@ -141,8 +137,6 @@ github.com/go-git/go-billy/v5 v5.0.0 h1:7NQHvd9FVid8VL4qVUMm8XifBK+2xCoZ2lSk0agR
 github.com/go-git/go-billy/v5 v5.0.0/go.mod h1:pmpqyWchKfYfrkb/UVH4otLvyi/5gJlGI4Hb3ZqZ3W0=
 github.com/go-git/go-git-fixtures/v4 v4.0.1 h1:q+IFMfLx200Q3scvt2hN79JsEzy4AmBTp/pqnefH+Bc=
 github.com/go-git/go-git-fixtures/v4 v4.0.1/go.mod h1:m+ICp2rF3jDhFgEZ/8yziagdT1C+ZpZcrJjappBCDSw=
-github.com/go-git/go-git/v5 v5.0.1-0.20200319142726-f6305131a06b h1:NXE8OfhdKZdiH/yauQRmAovsTJd7+hn+5rg5l+vODUs=
-github.com/go-git/go-git/v5 v5.0.1-0.20200319142726-f6305131a06b/go.mod h1:oYD8y9kWsGINPFJoLdaScGCN6dlKg23blmClfZwtUVA=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-lintpack/lintpack v0.5.2/go.mod h1:NwZuYi2nUHho8XEIZ6SIxihrnPoqBTDqfpXvXAN0sXM=
 github.com/go-logfmt/logfmt v0.3.0/go.mod h1:Qt1PoO58o5twSAckw1HlFXLmHsOX5/0LbT9GBnD5lWE=
@@ -793,12 +787,12 @@ github.com/quorumcontrol/chaintree v0.9.4/go.mod h1:XZMtCWpLgWM6UVSRk431n+HIjJcn
 github.com/quorumcontrol/chaintree v1.0.2-0.20200123185821-453f01cdbbb9/go.mod h1:PHUsyPwSBW+m9cuE5isdhJ8ZnSkFRqD6qQo4Oxva2Yw=
 github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9 h1:7Rl0EE1sR8NdjwIw1er+018yDXXHbnvk03pGbEQPXOQ=
 github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9/go.mod h1:PHUsyPwSBW+m9cuE5isdhJ8ZnSkFRqD6qQo4Oxva2Yw=
+github.com/quorumcontrol/go-git/v5 v5.0.1-0.20200406172056-231a188e4899 h1:tAVtM8piSRGCB6jRRBs91P/jaqUHgMTDdSCq0X1yuQ8=
+github.com/quorumcontrol/go-git/v5 v5.0.1-0.20200406172056-231a188e4899/go.mod h1:oYD8y9kWsGINPFJoLdaScGCN6dlKg23blmClfZwtUVA=
 github.com/quorumcontrol/go-keychain v0.0.0-20200324182052-9544b7eee399 h1:B9t4WAQXTsfRW6OlyKI3KK8vTAkZu5aIKtohJE1sDsY=
 github.com/quorumcontrol/go-keychain v0.0.0-20200324182052-9544b7eee399/go.mod h1:qKNyYzPILzVN3/4yQPjKdwuia7SMNzD+vazzCo1WffI=
 github.com/quorumcontrol/go-skynet v0.0.0-20200312164139-76fb137005c8 h1:X6zp2hKwK51po/w5z+XmKtR2sBijGD7tWHoIEobzpKw=
 github.com/quorumcontrol/go-skynet v0.0.0-20200312164139-76fb137005c8/go.mod h1:0uHjJYR8J4VnAixlHTaMyonV0F8pZc2qRNUR6gvDHYc=
-github.com/quorumcontrol/keyring v1.1.5-0.20200322160512-e16c51dc2ded h1:OaePmiZHxMW0IOUceYs0UXextL/XlRlLPLfuGEYYvA0=
-github.com/quorumcontrol/keyring v1.1.5-0.20200322160512-e16c51dc2ded/go.mod h1:657DQuMrBZRtuL/voxVyiyb6zpMehlm5vLB9Qwrv904=
 github.com/quorumcontrol/keyring v1.1.5-0.20200324201224-62c57642bc6f h1:ElmONO9ReBVAunXYNJyLDCRDh1qO1+tvyhOHt2eV3Ds=
 github.com/quorumcontrol/keyring v1.1.5-0.20200324201224-62c57642bc6f/go.mod h1:06MsWbyihr0379WTG9FluiAhoXmfSsqkoVDAf23KJUg=
 github.com/quorumcontrol/messages v1.1.1 h1:e90LvAM7YCZrFnXGM9H3pin+jjGqYPjW+YthBJkZHLc=

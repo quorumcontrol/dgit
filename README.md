@@ -53,9 +53,27 @@ As an example:
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
 a simple github action as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed yourde dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
 
+#### Collaborators
+
+You can manage your repo's team of collaborators with the `dgit team` command:
+
+* `dgit team add [collaborator usernames]`
+* `dgit team list`
+* `dgit team remove [usernames]`
+
+Anyone on the team will be allowed to push to the repo in the current directory.
+
+#### Configuration
+
+- Username can be set any of the following ways:
+  - `DGIT_USERNAME=[username]` env var
+  - `git config --global dgit.username [username]` sets it in `~/.gitconfig`
+  - `git config dgit.username [username]` sets it in `./.git/config`
+
 ### FAQ
 
 You can find answers to some of the most [frequently asked questions on the wiki](https://github.com/quorumcontrol/dgit/wiki/Frequently-Asked-Questions).
+
 ### Built With
 
 * [Git](https://git-scm.com/)

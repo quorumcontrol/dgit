@@ -5,8 +5,7 @@ Welcome to dgit!
 
 A private key has been generated for you and is stored in {{.keyringProvider}}.
 
-Below is your dgit public address, share this with others so they can grant you write access to dgit repos.
-{{.userAddress}}
+Your dgit username is {{.username}}. Others can grant you access to their repos by running: dgit team add {{.username}}.
 `
 
 var AddDgitToRemote = `
@@ -76,4 +75,8 @@ No .git directory found in {{.path}}.
 Please change directories to a git repo and run '{{.cmd}}' again.
 
 If you would like to create a new repo, use 'git init' normally and run '{{.cmd}}' again.
+`
+
+var UsernamePrompt = `
+What dgit username would you like to use?
 `

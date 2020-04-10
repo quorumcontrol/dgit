@@ -1,5 +1,7 @@
 package constants
 
 const (
-	Protocol = "dgit"
+	Protocol          = "dgit"
+	DgitConfigSection = "dgit"
+	DgitRemote        = "dgit"
 )

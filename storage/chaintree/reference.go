@@ -5,12 +5,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/quorumcontrol/chaintree/chaintree"
-	"github.com/quorumcontrol/messages/v2/build/go/transactions"
-	"go.uber.org/zap"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	gitstorage "github.com/go-git/go-git/v5/storage"
+	"github.com/quorumcontrol/chaintree/chaintree"
+	"github.com/quorumcontrol/messages/v2/build/go/transactions"
+	"go.uber.org/zap"
 
 	"github.com/quorumcontrol/dgit/storage"
 )
