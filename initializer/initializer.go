@@ -150,7 +150,7 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 
 	if username != "" && username != globalUsername {
 		log.Debugf("adding dgit.username to repo config")
-		newConfig := repoConfig.Merged.LocalConfig().AddOption(constants.DgitConfigSection, configformat.NoSubsection, "username", username)
+		newConfig := repoConfig.Merged.AddOption(configformat.LocalScope, constants.DgitConfigSection, configformat.NoSubsection, "username", username)
 		repoConfig.Merged.SetLocalConfig(newConfig)
 		err = repoConfig.Validate()
 		if err != nil {
