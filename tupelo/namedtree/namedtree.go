@@ -63,7 +63,12 @@ func (g *Generator) New(ctx context.Context, opts *Options) (*NamedTree, error) 
 		return nil, err
 	}
 
-	txns := []*transactions.Transaction{setOwnershipTxn, creationTimestampTxn}
+	docTypeTxn, err := chaintree.NewSetDataTransaction("__doctype", "dgit")
+	if err != nil {
+		return nil, err
+	}
+
+	txns := []*transactions.Transaction{setOwnershipTxn, creationTimestampTxn, docTypeTxn}
 
 	_, err = opts.Tupelo.PlayTransactions(ctx, chainTree, gKey, txns)
 	if err != nil {
