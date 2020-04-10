@@ -132,7 +132,7 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 	}
 
 	prompt := promptui.Prompt{
-		Label:     stripNewLines(msg.UsernamePrompt),
+		Label:     stripNewLines(msg.Parse(msg.UsernamePrompt, nil)),
 		Templates: promptTemplates,
 		Default:   username,
 		Stdin:     i.stdin,
@@ -149,6 +149,7 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("bad username: %w", err)
 	}
+	username = stripNewLines(username)
 
 	globalUsername := repoConfig.Merged.GlobalConfig().Section(constants.DgitConfigSection).Option("username")
 
@@ -344,7 +345,7 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*repotree.RepoT
 	log.Debugf("creating new repo tree with endpoint %+v and auth %+v", i.repo.MustEndpoint(), auth)
 	newTree, err := client.CreateRepoTree(ctx, i.repo.MustEndpoint(), auth)
 	if errors.Is(err, usertree.ErrNotFound) {
-		return nil, fmt.Errorf(msg.Parse(msg.UserNotFund, map[string]interface{}{
+		return nil, fmt.Errorf(msg.Parse(msg.UserNotFound, map[string]interface{}{
 			"user": strings.Split(i.repo.MustName(), "/")[0],
 		}))
 	}
@@ -428,14 +429,15 @@ func (i *Initializer) determineDgitEndpoint() (*transport.Endpoint, error) {
 	}
 
 	prompt := promptui.Prompt{
-		Label:     stripNewLines(msg.PromptRepoName),
+		Label:     stripNewLines(msg.Parse(msg.PromptRepoName, nil)),
 		Templates: promptTemplates,
 		Default:   suggestedRepoName,
 		Stdin:     i.stdin,
 		Stdout:    i.stdout,
 		Validate: func(input string) error {
+			input = stripNewLines(input)
 			if !validRepoName.MatchString(input) {
-				return fmt.Errorf(stripNewLines(msg.PromptRepoNameInvalid))
+				return fmt.Errorf(stripNewLines(msg.Parse(msg.PromptRepoNameInvalid, nil)))
 			}
 			return nil
 		},
@@ -446,7 +448,7 @@ func (i *Initializer) determineDgitEndpoint() (*transport.Endpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	result = strings.ToLower(result)
+	result = stripNewLines(strings.ToLower(result))
 	repoUser := strings.Split(result, "/")[0]
 	repoName := strings.TrimPrefix(result, repoUser+"/")
 	return newDgitEndpoint(repoUser, repoName)
@@ -483,7 +485,7 @@ func (i *Initializer) addDgitPushToRemote(ctx context.Context, remoteName string
 	fmt.Fprintln(i.stdout)
 
 	prompt := promptui.Prompt{
-		Label:     stripNewLines(msg.AddDgitToRemoteConfirm),
+		Label:     stripNewLines(msg.Parse(msg.AddDgitToRemoteConfirm, nil)),
 		Default:   "y",
 		Templates: promptTemplates,
 		IsConfirm: true,
@@ -554,7 +556,7 @@ func (i *Initializer) addDgitRemote(ctx context.Context) error {
 	fmt.Fprintln(i.stdout)
 
 	prompt := promptui.Prompt{
-		Label:     stripNewLines(msg.AddDgitRemoteConfirm),
+		Label:     stripNewLines(msg.Parse(msg.AddDgitRemoteConfirm, nil)),
 		Default:   "y",
 		Templates: promptTemplates,
 		IsConfirm: true,
