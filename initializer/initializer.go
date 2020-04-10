@@ -2,6 +2,7 @@ package initializer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -241,6 +242,11 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*repotree.RepoT
 	// repo doesn't exist, create it
 	log.Debugf("creating new repo tree with endpoint %+v and auth %+v", i.repo.MustEndpoint(), auth)
 	newTree, err := client.CreateRepoTree(ctx, i.repo.MustEndpoint(), auth)
+	if errors.Is(err, usertree.ErrNotFound) {
+		return nil, fmt.Errorf(msg.Parse(msg.UserNotFund, map[string]interface{}{
+			"user": strings.Split(i.repo.MustName(), "/")[0],
+		}))
+	}
 	if err != nil {
 		return nil, err
 	}

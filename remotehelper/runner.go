@@ -309,7 +309,7 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 	}
 
 	if username == "" {
-		log.Fatal("No dgit username configured. Run `git config --global dgit.username your-username`.")
+		return nil, fmt.Errorf(msg.UserNotConfigured)
 	}
 
 	privateKey, err := keyring.FindPrivateKey(r.keyring, username)

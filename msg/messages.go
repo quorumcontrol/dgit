@@ -54,6 +54,12 @@ var PrivateKeyNotFound = `
 Could not load your dgit private key from {{.keyringProvider}}. Try running 'dgit init' again.
 `
 
+var UserNotFund = `
+user {{.user}} does not exist
+`
+
+var UserNotConfigured = "\nNo dgit username configured. Run `git config --global dgit.username your-username`.\n"
+
 var RepoCreated = `
 Your dgit repo has been created at '{{.repo}}'.
 
