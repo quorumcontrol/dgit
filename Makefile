@@ -1,5 +1,6 @@
 gosources = $(shell find . -type f -name '*.go' -print)
 
+FIRSTGOPATH = $(firstword $(subst :, ,$(GOPATH)))
 HEAD_TAG := $(shell if [ -d .git ]; then git tag --points-at HEAD; fi)
 GIT_REV := $(shell if [ -d .git ]; then git rev-parse --short HEAD; fi)
 GIT_VERSION := $(or $(HEAD_TAG),$(GIT_REV))
@@ -9,7 +10,7 @@ GOLDFLAGS += -X main.Version=$(VERSION)
 GOFLAGS = -ldflags "$(GOLDFLAGS)"
 
 ifeq ($(PREFIX),)
-    PREFIX := /usr/local
+	PREFIX := $(or $(FIRSTGOPATH),/usr/local)
 endif
 
 all: build
