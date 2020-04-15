@@ -132,6 +132,11 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 		return nil, err
 	}
 
+	docTypeTxn, err := chaintree.NewSetDataTransaction("__doctype", "dgit")
+	if err != nil {
+		return nil, err
+	}
+
 	repoTxn, err := chaintree.NewSetDataTransaction("dgit/repo", opts.Name)
 	if err != nil {
 		return nil, err
@@ -155,7 +160,7 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 		return nil, err
 	}
 
-	txns := []*transactions.Transaction{setOwnershipTxn, creationTimestampTxn, repoTxn, configTxn, teamTxn}
+	txns := []*transactions.Transaction{setOwnershipTxn, creationTimestampTxn, docTypeTxn, repoTxn, configTxn, teamTxn}
 
 	_, err = opts.Tupelo.PlayTransactions(ctx, chainTree, creationKey, txns)
 	if err != nil {
