@@ -30,7 +30,7 @@ type Runner struct {
 	stdin   io.Reader
 	stdout  io.Writer
 	stderr  io.Writer
-	keyring keyring.Keyring
+	keyring *keyring.Keyring
 }
 
 func New(local *git.Repository) *Runner {
@@ -312,10 +312,10 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 		return nil, fmt.Errorf(msg.UserNotConfigured)
 	}
 
-	privateKey, err := keyring.FindPrivateKey(r.keyring, username)
+	privateKey, err := r.keyring.FindPrivateKey(username)
 	if err == keyring.ErrKeyNotFound {
 		return nil, fmt.Errorf(msg.Parse(msg.PrivateKeyNotFound, map[string]interface{}{
-			"keyringProvider": keyring.Name(r.keyring),
+			"keyringProvider": r.keyring.Name(),
 		}))
 	}
 

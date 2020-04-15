@@ -2,6 +2,7 @@ package initializer
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	configformat "github.com/go-git/go-git/v5/plumbing/format/config"
@@ -18,6 +20,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/quorumcontrol/chaintree/nodestore"
 	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	"github.com/tyler-smith/go-bip39"
 
 	"github.com/quorumcontrol/dgit/constants"
 	"github.com/quorumcontrol/dgit/keyring"
@@ -50,7 +53,7 @@ type Initializer struct {
 	stdin     io.ReadCloser
 	stdout    io.WriteCloser
 	stderr    io.WriteCloser
-	keyring   keyring.Keyring
+	keyring   *keyring.Keyring
 	auth      transport.AuthMethod
 	repo      *dgit.Repo
 	tupelo    *tupelo.Client
@@ -73,7 +76,7 @@ func (i *Initializer) Init(ctx context.Context, args []string) error {
 	var err error
 
 	// load up auth and notify user if new
-	_, err = i.getAuth()
+	_, err = i.getAuth(ctx)
 	if err != nil {
 		return err
 	}
@@ -166,12 +169,13 @@ func (i *Initializer) findOrRequestUsername() (string, error) {
 	return username, nil
 }
 
-func (i *Initializer) getAuth() (transport.AuthMethod, error) {
+func (i *Initializer) getAuth(ctx context.Context) (transport.AuthMethod, error) {
 	if i.auth != nil {
 		return i.auth, nil
 	}
 
-	kr, err := keyring.NewDefault()
+	var err error
+	i.keyring, err = keyring.NewDefault()
 	// TODO: if no keyring available, prompt user for dgit password
 	if err != nil {
 		return nil, fmt.Errorf("Error with keyring: %v", err)
@@ -182,35 +186,132 @@ func (i *Initializer) getAuth() (transport.AuthMethod, error) {
 		return nil, err
 	}
 
-	privateKey, isNew, err := keyring.FindOrCreatePrivateKey(kr, username)
+	privateKey, err := i.keyring.FindPrivateKey(username)
+	if errors.Is(err, keyring.ErrKeyNotFound) {
+		privateKey, err = i.createOrRecoverPrivateKey(ctx, username)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching key from keyring: %v", err)
 	}
 
 	i.auth = dgit.NewPrivateKeyAuth(privateKey)
+	return i.auth, nil
+}
 
-	if isNew {
-		ctx := context.Background()
+func (i *Initializer) createPrivateKey(ctx context.Context, username string) (*ecdsa.PrivateKey, error) {
+	entropy, err := bip39.NewEntropy(256)
+	if err != nil {
+		return nil, fmt.Errorf("error generating entropy for mnemoic seed: %w", err)
+	}
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	if err != nil {
+		return nil, fmt.Errorf("error generating mnemoic seed: %w", err)
+	}
+	seed := bip39.NewSeed(mnemonic, username)
 
-		opts := &usertree.Options{
-			Name:      username,
-			Tupelo:    i.tupelo,
-			NodeStore: i.nodestore,
-			Owners:    []string{i.auth.String()},
-		}
-		_, err := usertree.Create(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		msg.Fprint(i.stdout, msg.Welcome, map[string]interface{}{
-			"keyringProvider": keyring.Name(kr),
-			"username":        username,
-		})
-		fmt.Fprintln(i.stdout)
+	privateKey, err := i.keyring.CreatePrivateKey(username, seed)
+	if err != nil {
+		return nil, fmt.Errorf("error creating private key: %w", err)
 	}
 
-	return i.auth, nil
+	i.auth = dgit.NewPrivateKeyAuth(privateKey)
+
+	opts := &usertree.Options{
+		Name:      username,
+		Tupelo:    i.tupelo,
+		NodeStore: i.nodestore,
+		Owners:    []string{i.auth.String()},
+	}
+
+	userTree, err := usertree.Create(ctx, opts)
+	if err != nil {
+		i.keyring.DeletePrivateKey(username)
+		return nil, err
+	}
+
+	msg.Fprint(i.stdout, msg.Welcome, map[string]interface{}{
+		"username": username,
+		"did":      userTree.ChainTree.MustId(),
+	})
+	fmt.Fprintln(i.stdout)
+
+	seedSlice := strings.Split(string(mnemonic), " ")
+
+	msg.Fprint(i.stdout, msg.UserSeedPhraseCreated, map[string]interface{}{
+		"username": username,
+		"seed":     " " + strings.Join(seedSlice[0:8], " ") + "\n " + strings.Join(seedSlice[8:16], " ") + "\n " + strings.Join(seedSlice[16:], " "),
+	})
+	fmt.Fprintln(i.stdout)
+
+	return privateKey, nil
+}
+
+func (i *Initializer) recoverPrivateKey(ctx context.Context, username string, userTree *usertree.UserTree) (*ecdsa.PrivateKey, error) {
+	seedCleaner := func(str string) string {
+		str = stripNewLines(str)
+		str = strings.TrimSpace(str)
+		return strings.ToLower(str)
+	}
+
+	prompt := promptui.Prompt{
+		Label:     stripNewLines(msg.Parse(msg.PromptRecoveryPhrase, map[string]interface{}{"username": username})),
+		Templates: promptTemplates,
+		Stdin:     i.stdin,
+		Stdout:    i.stdout,
+		Validate: func(input string) error {
+			seedSlice := strings.Split(seedCleaner(input), " ")
+			if len(seedSlice) != 24 {
+				return fmt.Errorf(msg.PromptInvalidRecoveryPhrase)
+			}
+			return nil
+		},
+	}
+
+	seed, err := prompt.Run()
+	fmt.Fprintln(i.stdout)
+	if err != nil {
+		return nil, err
+	}
+	seed = seedCleaner(seed)
+
+	privateKey, err := i.keyring.CreatePrivateKey(username, bip39.NewSeed(seed, username))
+	if err != nil {
+		return nil, fmt.Errorf("error creating private key: %w", err)
+	}
+
+	isOwner, err := userTree.IsOwner(ctx, crypto.PubkeyToAddress(privateKey.PublicKey).String())
+	if err != nil {
+		return nil, fmt.Errorf("error checking chaintree ownership: %w", err)
+	}
+
+	if !isOwner {
+		msg.Fprint(i.stdout, msg.IncorrectRecoveryPhrase, map[string]interface{}{
+			"username": username,
+		})
+		fmt.Fprintln(i.stdout)
+		i.keyring.DeletePrivateKey(username)
+		return i.recoverPrivateKey(ctx, username, userTree)
+	}
+
+	i.auth = dgit.NewPrivateKeyAuth(privateKey)
+
+	msg.Fprint(i.stdout, msg.UserRestored, map[string]interface{}{
+		"username": username,
+	})
+	fmt.Fprintln(i.stdout)
+
+	return nil, nil
+}
+
+func (i *Initializer) createOrRecoverPrivateKey(ctx context.Context, username string) (*ecdsa.PrivateKey, error) {
+	userTree, err := usertree.Find(ctx, username, i.tupelo)
+	if errors.Is(err, usertree.ErrNotFound) {
+		return i.createPrivateKey(ctx, username)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return i.recoverPrivateKey(ctx, username, userTree)
 }
 
 func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*repotree.RepoTree, error) {
@@ -234,7 +335,7 @@ func (i *Initializer) findOrCreateRepoTree(ctx context.Context) (*repotree.RepoT
 		return nil, err
 	}
 
-	auth, err := i.getAuth()
+	auth, err := i.getAuth(ctx)
 	if err != nil {
 		return nil, err
 	}

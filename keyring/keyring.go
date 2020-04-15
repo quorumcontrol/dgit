@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	keyringlib "github.com/99designs/keyring"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
@@ -12,8 +15,8 @@ import (
 
 var log = logging.Logger("dgit.keyring")
 
-type Keyring interface {
-	keyringlib.Keyring
+type Keyring struct {
+	kr keyringlib.Keyring
 }
 
 var secureKeyringBackends = []keyringlib.BackendType{
@@ -34,23 +37,27 @@ var KeyringPrettyNames = map[string]string{
 
 var ErrKeyNotFound = keyringlib.ErrKeyNotFound
 
-func NewDefault() (Keyring, error) {
+func NewDefault() (*Keyring, error) {
 	kr, err := keyringlib.Open(keyringlib.Config{
 		ServiceName:                    "dgit",
 		KeychainTrustApplication:       true,
 		KeychainAccessibleWhenUnlocked: true,
 		AllowedBackends:                secureKeyringBackends,
 	})
-	log.Info("keyring provider: " + Name(kr))
-	return kr, err
+	if err != nil {
+		return nil, err
+	}
+	k := &Keyring{kr}
+	log.Info("keyring provider: " + k.Name())
+	return k, nil
 }
 
-func NewMemory() Keyring {
-	return keyringlib.NewArrayKeyring([]keyringlib.Item{})
+func NewMemory() *Keyring {
+	return &Keyring{keyringlib.NewArrayKeyring([]keyringlib.Item{})}
 }
 
-func Name(kr Keyring) string {
-	typeName := fmt.Sprintf("%T", kr)
+func (k *Keyring) Name() string {
+	typeName := fmt.Sprintf("%T", k.kr)
 	name, ok := KeyringPrettyNames[typeName]
 	if !ok {
 		return typeName
@@ -58,8 +65,8 @@ func Name(kr Keyring) string {
 	return name
 }
 
-func migrateOldDefaultKey(kr Keyring, keyName string) (*keyringlib.Item, error) {
-	oldDefault, err := kr.Get("default")
+func (k *Keyring) migrateOldDefaultKey(keyName string) (*keyringlib.Item, error) {
+	oldDefault, err := k.kr.Get("default")
 	if err == keyringlib.ErrKeyNotFound {
 		log.Debugf("no dgit.default key found")
 		return nil, ErrKeyNotFound
@@ -69,12 +76,12 @@ func migrateOldDefaultKey(kr Keyring, keyName string) (*keyringlib.Item, error) 
 		log.Debugf("migrating old dgit.default key to dgit.%s", keyName)
 		oldDefault.Key = keyName
 		oldDefault.Label = "dgit." + keyName
-		err = kr.Set(oldDefault)
+		err = k.kr.Set(oldDefault)
 		if err != nil {
 			log.Errorf("error migrating dgit.default key: %v", err)
 			return nil, err
 		}
-		remErr := kr.Remove("default")
+		remErr := k.kr.Remove("default")
 		if remErr != nil {
 			log.Warnf("error removing old dgit.default key: %v", remErr)
 		}
@@ -83,12 +90,12 @@ func migrateOldDefaultKey(kr Keyring, keyName string) (*keyringlib.Item, error) 
 	return &oldDefault, err
 }
 
-func FindPrivateKey(kr Keyring, keyName string) (key *ecdsa.PrivateKey, err error) {
+func (k *Keyring) FindPrivateKey(keyName string) (key *ecdsa.PrivateKey, err error) {
 	log.Debugf("finding private key %s", keyName)
-	privateKeyItem, err := kr.Get(keyName)
+	privateKeyItem, err := k.kr.Get(keyName)
 	if err == keyringlib.ErrKeyNotFound {
 		log.Debugf("private key %s not found; attempting to migrate old dgit.default key", keyName)
-		migratedItem, err := migrateOldDefaultKey(kr, keyName)
+		migratedItem, err := k.migrateOldDefaultKey(keyName)
 		if err != nil {
 			return nil, err
 		}
@@ -108,20 +115,30 @@ func FindPrivateKey(kr Keyring, keyName string) (key *ecdsa.PrivateKey, err erro
 	return key, nil
 }
 
-func FindOrCreatePrivateKey(kr Keyring, keyName string) (key *ecdsa.PrivateKey, isNew bool, err error) {
-	privateKey, err := FindPrivateKey(kr, keyName)
-	if err == nil {
-		return privateKey, false, nil
-	}
-
-	if err != ErrKeyNotFound {
-		return nil, false, err
-	}
-
-	privateKey, err = crypto.GenerateKey()
+func (k *Keyring) CreatePrivateKey(keyName string, seed []byte) (*ecdsa.PrivateKey, error) {
+	derivedKeyPaths, err := accounts.ParseDerivationPath("m/44'/1392825'/0'/0")
 	if err != nil {
-		return nil, true, err
+		return nil, err
 	}
+
+	masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.Params{
+		HDPrivateKeyID: [4]byte{0x04, 0x88, 0xad, 0xe4},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	key := masterKey
+	for _, n := range derivedKeyPaths {
+		key, err = key.Child(n)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+
+	ecPrivateKey, err := key.ECPrivKey()
+	privateKey := ecPrivateKey.ToECDSA()
 
 	privateKeyItem := keyringlib.Item{
 		Key:   keyName,
@@ -129,10 +146,17 @@ func FindOrCreatePrivateKey(kr Keyring, keyName string) (key *ecdsa.PrivateKey, 
 		Data:  []byte(hexutil.Encode(crypto.FromECDSA(privateKey))),
 	}
 
-	err = kr.Set(privateKeyItem)
+	err = k.kr.Set(privateKeyItem)
 	if err != nil {
-		return nil, true, fmt.Errorf("error saving private key for dgit: %v", err)
+		return nil, fmt.Errorf("error saving private key for dgit: %v", err)
 	}
 
-	return privateKey, true, nil
+	return privateKey, nil
+}
+
+func (k *Keyring) DeletePrivateKey(keyName string) {
+	err := k.kr.Remove(keyName)
+	if err != nil {
+		log.Warnf("error removing dgit.%s key: %w", keyName, err)
+	}
 }

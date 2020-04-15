@@ -3,9 +3,7 @@ package msg
 var Welcome = `
 Welcome to dgit!
 
-A private key has been generated for you and is stored in {{.keyringProvider}}.
-
-Your dgit username is {{.username}}. Others can grant you access to their repos by running: dgit team add {{.username}}.
+Your dgit username has been created as {{.username}}. Others can grant you access to their repos by running: dgit team add {{.username}}.
 `
 
 var AddDgitToRemote = `
@@ -50,8 +48,20 @@ var PromptRepoName = `What is your full repo name?`
 
 var PromptRepoNameInvalid = `Enter a valid repo name in the form '${user_or_org}/${repo_name}'`
 
+var PromptRecoveryPhrase = `Please enter the recovery phrase for {{.username}}: `
+
+var PromptInvalidRecoveryPhrase = `Invalid recovery phrase, must be 24 words separated by spaces`
+
 var PrivateKeyNotFound = `
 Could not load your dgit private key from {{.keyringProvider}}. Try running 'dgit init' again.
+`
+
+var UserSeedPhraseCreated = `
+Below is your recovery phrase, you will need this to access your account from another machine or recover your account.
+
+Please write this down in a secure location. This will be the only time the recovery phrase is displayed.
+
+{{.seed}}
 `
 
 var UserNotFund = `
@@ -59,6 +69,10 @@ user {{.user}} does not exist
 `
 
 var UserNotConfigured = "\nNo dgit username configured. Run `git config --global dgit.username your-username`.\n"
+
+var UserRestored = `
+Your dgit user '{{.username}}' has been restored. This machine is now authorized to push to dgit repos it owns.
+`
 
 var RepoCreated = `
 Your dgit repo has been created at '{{.repo}}'.

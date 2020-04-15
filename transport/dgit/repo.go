@@ -161,7 +161,7 @@ func (r *Repo) Auth() (transport.AuthMethod, error) {
 		return nil, err
 	}
 
-	privateKey, err := keyring.FindPrivateKey(kr, username)
+	privateKey, err := kr.FindPrivateKey(username)
 	if err != nil {
 		return nil, err
 	}

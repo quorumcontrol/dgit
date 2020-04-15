@@ -19,6 +19,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	logging "github.com/ipfs/go-log"
 	"github.com/stretchr/testify/require"
+	"github.com/tyler-smith/go-bip39"
 
 	"github.com/quorumcontrol/dgit/keyring"
 	"github.com/quorumcontrol/dgit/transport/dgit"
@@ -78,9 +79,9 @@ func TestRunnerIntegration(t *testing.T) {
 	require.NotNil(t, userMsgReader)
 
 	kr := keyring.NewMemory()
-	pkey, isNew, err := keyring.FindOrCreatePrivateKey(kr, username)
+	seed := bip39.NewSeed("123", username)
+	pkey, err := kr.CreatePrivateKey(username, seed)
 	require.Nil(t, err)
-	require.True(t, isNew)
 	auth := dgit.NewPrivateKeyAuth(pkey)
 
 	_, err = usertree.Create(ctx, &usertree.Options{
