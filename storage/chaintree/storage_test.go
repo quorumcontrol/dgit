@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
-	"github.com/quorumcontrol/tupelo-go-sdk/p2p"
+	"github.com/quorumcontrol/tupelo/sdk/consensus"
+	"github.com/quorumcontrol/tupelo/sdk/p2p"
 	. "gopkg.in/check.v1"
 
 	gitstorage "github.com/go-git/go-git/v5/storage"

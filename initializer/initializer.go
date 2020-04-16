@@ -19,7 +19,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	"github.com/manifoldco/promptui"
 	"github.com/quorumcontrol/chaintree/nodestore"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 	"github.com/tyler-smith/go-bip39"
 
 	"github.com/quorumcontrol/dgit/constants"

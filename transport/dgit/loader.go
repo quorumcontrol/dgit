@@ -9,7 +9,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/quorumcontrol/chaintree/nodestore"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 
 	"github.com/quorumcontrol/dgit/storage"
 	"github.com/quorumcontrol/dgit/storage/chaintree"

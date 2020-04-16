@@ -9,7 +9,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 
 	"github.com/quorumcontrol/dgit/tupelo/namedtree"
 )
