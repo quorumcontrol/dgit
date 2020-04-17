@@ -13,10 +13,10 @@ import (
 	flatfs "github.com/ipfs/go-ds-flatfs"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	logging "github.com/ipfs/go-log"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
-	"github.com/quorumcontrol/tupelo-go-sdk/gossip/client/pubsubinterfaces/pubsubwrapper"
-	"github.com/quorumcontrol/tupelo-go-sdk/gossip/types"
-	"github.com/quorumcontrol/tupelo-go-sdk/p2p"
+	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
+	"github.com/quorumcontrol/tupelo/sdk/gossip/client/pubsubinterfaces/pubsubwrapper"
+	"github.com/quorumcontrol/tupelo/sdk/gossip/types"
+	"github.com/quorumcontrol/tupelo/sdk/p2p"
 )
 
 const ngToml = `

@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/ecdsa"
 
-	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	"github.com/quorumcontrol/tupelo/sdk/consensus"
+	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 )
 
 type Config struct {

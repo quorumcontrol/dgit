@@ -9,8 +9,8 @@ import (
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/chaintree/nodestore"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
-	"github.com/quorumcontrol/tupelo-go-sdk/consensus"
-	tupelo "github.com/quorumcontrol/tupelo-go-sdk/gossip/client"
+	"github.com/quorumcontrol/tupelo/sdk/consensus"
+	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 )
 
 var ErrNotFound = tupelo.ErrNotFound

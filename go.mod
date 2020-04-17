@@ -38,7 +38,7 @@ require (
 	github.com/manifoldco/promptui v0.7.0
 	github.com/quorumcontrol/chaintree v1.0.2-0.20200124091942-25ceb93627b9
 	github.com/quorumcontrol/messages/v2 v2.1.3-0.20200129115245-2bfec5177653
-	github.com/quorumcontrol/tupelo-go-sdk v0.6.0-beta1.0.20200306010523-39fc767b60a1
+	github.com/quorumcontrol/tupelo v0.6.2-0.20200416192628-cf6a991e5039
 	github.com/spf13/cobra v0.0.5
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570 // indirect
 	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
