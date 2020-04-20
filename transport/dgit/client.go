@@ -72,10 +72,8 @@ func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoin
 		return nil, fmt.Errorf("unable to cast %T to PrivateKeyAuth", auth)
 	}
 	return repotree.Create(ctx, &repotree.Options{
-		Name:      endpoint.Host + endpoint.Path,
-		Tupelo:    c.Tupelo,
-		NodeStore: c.Nodestore,
-		Owners:    []string{auth.String()},
+		Name:   endpoint.Host + endpoint.Path,
+		Tupelo: c.Tupelo,
 	}, pkAuth.Key())
 }
 

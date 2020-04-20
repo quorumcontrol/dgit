@@ -1,4 +1,4 @@
-package repotree
+package namedtree
 
 import (
 	"testing"
@@ -6,7 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRepoIsCaseInsenitive(t *testing.T) {
+func TestNamingIsCaseInsenitive(t *testing.T) {
+	namedTreeGen := &Generator{Namespace: "Test"}
 	lower, err := namedTreeGen.Did("quorumcontrol/dgit-test")
 	require.Nil(t, err)
 	mixed, err := namedTreeGen.Did("quorumcontrol/DGIT-test")

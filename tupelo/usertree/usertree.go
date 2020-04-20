@@ -12,6 +12,7 @@ import (
 	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 
 	"github.com/quorumcontrol/dgit/tupelo/namedtree"
+	"github.com/quorumcontrol/dgit/tupelo/tree"
 )
 
 type UserTree struct {
@@ -26,7 +27,7 @@ var namedTreeGen *namedtree.Generator
 
 var reposMapPath = []string{"dgit", "repos"}
 
-var ErrNotFound = tupelo.ErrNotFound
+var ErrNotFound = tree.ErrNotFound
 
 func init() {
 	namedTreeGen = &namedtree.Generator{Namespace: userSalt}
@@ -48,7 +49,8 @@ func Find(ctx context.Context, username string, client *tupelo.Client) (*UserTre
 
 func Create(ctx context.Context, opts *Options) (*UserTree, error) {
 	ntOpts := namedtree.Options(*opts)
-	namedTree, err := namedTreeGen.New(ctx, &ntOpts)
+
+	namedTree, err := namedTreeGen.Create(ctx, &ntOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +61,11 @@ func Create(ctx context.Context, opts *Options) (*UserTree, error) {
 }
 
 func (t *UserTree) IsOwner(ctx context.Context, addr string) (bool, error) {
-	auths, err := t.ChainTree.Authentications()
+	auths, err := t.ChainTree().Authentications()
 	if err != nil {
 		return false, err
 	}
-	log.Debugf("checking %s is owner of %s, chaintree auths: %v", addr, t.ChainTree.MustId(), auths)
+	log.Debugf("checking %s is owner of %s, chaintree auths: %v", addr, t.Did(), auths)
 
 	for _, auth := range auths {
 		if auth == addr {
@@ -83,14 +85,14 @@ func (t *UserTree) AddRepo(ctx context.Context, ownerKey *ecdsa.PrivateKey, repo
 		return err
 	}
 
-	_, err = t.Tupelo.PlayTransactions(ctx, t.ChainTree, ownerKey, []*transactions.Transaction{repoTxn})
+	_, err = t.Tupelo().PlayTransactions(ctx, t.ChainTree(), ownerKey, []*transactions.Transaction{repoTxn})
 	return err
 }
 
 func (t *UserTree) Repos(ctx context.Context) (map[string]string, error) {
 	path := append([]string{"tree", "data"}, reposMapPath...)
 	valMap := make(map[string]string)
-	valUncast, _, err := t.ChainTree.ChainTree.Dag.Resolve(ctx, path)
+	valUncast, _, err := t.Resolve(ctx, path)
 	if err != nil {
 		return nil, err
 	}

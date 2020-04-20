@@ -6,42 +6,34 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	logging "github.com/ipfs/go-log"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
-	"github.com/quorumcontrol/tupelo/sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 
-	"github.com/quorumcontrol/dgit/tupelo/namedtree"
+	"github.com/quorumcontrol/dgit/tupelo/tree"
 	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
 
 const (
-	repoSalt                 = "decentragit-0.0.0-alpha"
 	DefaultObjectStorageType = "siaskynet"
 )
 
 var log = logging.Logger("decentragit.repotree")
 
-var collabPath = []string{"tree", "data", "dgit", "team"}
+var ErrNotFound = tree.ErrNotFound
 
-var namedTreeGen *namedtree.Generator
-
-var ErrNotFound = tupelo.ErrNotFound
-
-func init() {
-	namedTreeGen = &namedtree.Generator{Namespace: repoSalt}
+type Options struct {
+	Name              string
+	Tupelo            *tupelo.Client
+	Owners            []string
+	ObjectStorageType string
 }
 
-type Options namedtree.Options
-
 type RepoTree struct {
-	Name      string
-	ChainTree *consensus.SignedChainTree
-	Tupelo    *tupelo.Client
+	*tree.Tree
 }
 
 func Find(ctx context.Context, repo string, client *tupelo.Client) (*RepoTree, error) {
@@ -50,33 +42,29 @@ func Find(ctx context.Context, repo string, client *tupelo.Client) (*RepoTree, e
 	username := strings.Split(repo, "/")[0]
 	reponame := strings.Join(strings.Split(repo, "/")[1:], "/")
 
-	userChainTree, err := usertree.Find(ctx, username, client)
+	userTree, err := usertree.Find(ctx, username, client)
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("user chaintree found for %s - %s", username, userChainTree.ChainTree.MustId())
+	log.Debugf("user chaintree found for %s - %s", username, userTree.Did())
 
-	userRepos, err := userChainTree.Repos(ctx)
+	userRepos, err := userTree.Repos(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	repoDid, ok := userRepos[reponame]
-	if !ok {
+	if !ok || repoDid == "" {
 		return nil, ErrNotFound
 	}
 
-	chainTree, err := client.GetLatest(ctx, repoDid)
-	if err == tupelo.ErrNotFound {
-		return nil, ErrNotFound
+	t, err := tree.Find(ctx, client, repoDid)
+	if err != nil {
+		return nil, err
 	}
-	log.Debugf("repo chaintree found for %s - %s", repo, chainTree.MustId())
+	log.Debugf("repo chaintree found for %s - %s", repo, t.Did())
 
-	return &RepoTree{
-		Name:      repo,
-		ChainTree: chainTree,
-		Tupelo:    client,
-	}, nil
+	return &RepoTree{t}, nil
 }
 
 func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*RepoTree, error) {
@@ -85,16 +73,16 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 	username := strings.Split(opts.Name, "/")[0]
 	reponame := strings.Join(strings.Split(opts.Name, "/")[1:], "/")
 
-	userChainTree, err := usertree.Find(ctx, username, opts.Tupelo)
+	userTree, err := usertree.Find(ctx, username, opts.Tupelo)
 	if err == usertree.ErrNotFound {
 		return nil, fmt.Errorf("user %s does not exist (%w)", username, err)
 	}
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("user chaintree found for %s - %s", username, userChainTree.ChainTree.MustId())
+	log.Debugf("user chaintree found for %s - %s", username, userTree.Did())
 
-	isOwner, err := userChainTree.IsOwner(ctx, crypto.PubkeyToAddress(ownerKey.PublicKey).String())
+	isOwner, err := userTree.IsOwner(ctx, crypto.PubkeyToAddress(ownerKey.PublicKey).String())
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +90,7 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 		return nil, fmt.Errorf("can not create repo %s, current user is not an owner of %s", opts.Name, username)
 	}
 
-	userRepos, err := userChainTree.Repos(ctx)
+	userRepos, err := userTree.Repos(ctx)
 	if err != nil {
 		return nil, err
 	}

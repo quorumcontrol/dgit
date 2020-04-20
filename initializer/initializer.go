@@ -218,10 +218,9 @@ func (i *Initializer) createPrivateKey(ctx context.Context, username string) (*e
 	i.auth = dgit.NewPrivateKeyAuth(privateKey)
 
 	opts := &usertree.Options{
-		Name:      username,
-		Tupelo:    i.tupelo,
-		NodeStore: i.nodestore,
-		Owners:    []string{i.auth.String()},
+		Name:   username,
+		Tupelo: i.tupelo,
+		Owners: []string{i.auth.String()},
 	}
 
 	userTree, err := usertree.Create(ctx, opts)
@@ -232,7 +231,7 @@ func (i *Initializer) createPrivateKey(ctx context.Context, username string) (*e
 
 	msg.Fprint(i.stdout, msg.Welcome, map[string]interface{}{
 		"username": username,
-		"did":      userTree.ChainTree.MustId(),
+		"did":      userTree.Did(),
 	})
 	fmt.Fprintln(i.stdout)
 
