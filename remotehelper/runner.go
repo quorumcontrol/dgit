@@ -23,7 +23,7 @@ import (
 	"github.com/quorumcontrol/dgit/transport/dgit"
 )
 
-var log = logging.Logger("dgit.runner")
+var log = logging.Logger("decentragit.runner")
 
 type Runner struct {
 	local   *git.Repository
@@ -309,7 +309,9 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 	}
 
 	if username == "" {
-		return nil, fmt.Errorf(msg.UserNotConfigured)
+		return nil, fmt.Errorf(msg.Parse(msg.UserNotConfigured, map[string]interface{}{
+			"configSection": constants.DgitConfigSection,
+		}))
 	}
 
 	privateKey, err := r.keyring.FindPrivateKey(username)

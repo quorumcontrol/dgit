@@ -129,7 +129,7 @@ func (r *Repo) Username() (string, error) {
 	dgitConfig := repoConfig.Merged.Section(constants.DgitConfigSection)
 
 	if dgitConfig == nil {
-		return "", fmt.Errorf("no dgit configuration found; run `git config --global dgit.username your-username`")
+		return "", fmt.Errorf("no decentragit configuration found; run `git config --global %s.username your-username`", constants.DgitConfigSection)
 	}
 
 	username := dgitConfig.Option("username")
@@ -140,7 +140,7 @@ func (r *Repo) Username() (string, error) {
 	}
 
 	if username == "" {
-		return "", fmt.Errorf("no dgit username found; run `git config --global dgit.username your-username`")
+		return "", fmt.Errorf("no decentragit username found; run `git config --global %s.username your-username`", constants.DgitConfigSection)
 	}
 
 	return username, nil

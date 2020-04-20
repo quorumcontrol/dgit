@@ -49,7 +49,7 @@ func TestRunnerIntegration(t *testing.T) {
 
 	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
 	if ok {
-		require.Nil(t, logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr)))
+		require.Nil(t, logging.SetLogLevelRegex("decentragit.*", strings.ToUpper(logLevelStr)))
 	}
 
 	localRepoFs := fixtures.Basic().One().DotGit()

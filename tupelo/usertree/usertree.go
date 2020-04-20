@@ -18,7 +18,7 @@ type UserTree struct {
 	*namedtree.NamedTree
 }
 
-var log = logging.Logger("dgit.usertree")
+var log = logging.Logger("decentragit.usertree")
 
 const userSalt = "dgit-user-v0"
 

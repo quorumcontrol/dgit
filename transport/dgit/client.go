@@ -17,7 +17,7 @@ import (
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
 )
 
-var log = logging.Logger("dgit.client")
+var log = logging.Logger("decentragit.client")
 
 type Client struct {
 	transport.Transport

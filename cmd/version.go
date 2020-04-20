@@ -14,9 +14,9 @@ func init() {
 
 var versionCommand = &cobra.Command{
 	Use:   "version",
-	Short: "Print dgit version",
-	Long:  "Output dgit version to stdout",
+	Short: "Print decentragit version",
+	Long:  "Output decentragit version to stdout",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("dgit version %s\n", Version)
+		fmt.Printf("decentragit version %s\n", Version)
 	},
 }

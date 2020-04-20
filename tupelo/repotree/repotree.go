@@ -24,7 +24,7 @@ const (
 	DefaultObjectStorageType = "siaskynet"
 )
 
-var log = logging.Logger("dgit.repotree")
+var log = logging.Logger("decentragit.repotree")
 
 var collabPath = []string{"tree", "data", "dgit", "team"}
 

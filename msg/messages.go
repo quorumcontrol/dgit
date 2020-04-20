@@ -1,40 +1,40 @@
 package msg
 
 var Welcome = `
-Welcome to dgit!
+Welcome to decentragit!
 
-Your dgit username has been created as {{.username | bold | yellow}}. Others can grant you access to their repos by running: {{print "dgit team add " .username | bold | cyan}}.
+Your decentragit username has been created as {{.username | bold | yellow}}. Others can grant you access to their repos by running: {{print "git dg team add " .username | bold | cyan}}.
 `
 
 var AddDgitToRemote = `
-dgit would like to add {{.repourl | bold | yellow}} to the {{.remote | bold }} remote. This allows {{"git push" | bold | cyan}} to mirror this repository to dgit.
+decentragit would like to add {{.repourl | bold | yellow}} to the {{.remote | bold }} remote. This allows {{"git push" | bold | cyan}} to mirror this repository to decentragit.
 `
 
 var AddDgitToRemoteConfirm = `{{"Is that ok?" | bold | green}}`
 
 var AddedDgitToRemote = `
-Success, dgit is now superpowering the {{.remote | bold }} remote.
+Success, decentragit is now superpowering the {{.remote | bold }} remote.
 Continue using your normal git workflow and enjoy being decentralized.
 `
 
 var AddDgitRemote = `
-dgit would like to add the {{.remote |  bold }} remote to this repo so that you can fetch directly from dgit.
+decentragit would like to add the {{.remote |  bold }} remote to this repo so that you can fetch directly from decentragit.
 `
 
 var AddDgitRemoteConfirm = AddDgitToRemoteConfirm
 
 var AddedDgitRemote = `
-Success, dgit is now accessible under the {{.remote | bold }} remote.
+Success, decentragit is now accessible under the {{.remote | bold }} remote.
 {{print "git fetch " .remote | bold | cyan}} will work flawlessly from your decentralized repo.
 `
 
 var FinalInstructions = `
-You are setup and ready to roll with dgit.
+You are setup and ready to roll with decentragit.
 Just use git as you usually would and enjoy a fully decentralized repo.
 
-If you would like to clone this dgit repo on another machine, simply run {{print "git clone " .repourl | bold | cyan}}.
+If you would like to clone this decentragit repo on another machine, simply run {{print "git clone " .repourl | bold | cyan}}.
 
-If you use GitHub for this repo, we recommend adding a dgit action to keep your post-PR branches in sync on dgit.
+If you use GitHub for this repo, we recommend adding a decentragit action to keep your post-PR branches in sync on decentragit.
 You can find the necessary action here:
 {{"https://github.com/quorumcontrol/dgit-github-action" | bold | blue}}
 
@@ -57,7 +57,7 @@ var IncorrectRecoveryPhrase = `
 `
 
 var PrivateKeyNotFound = `
-Could not load your dgit private key from {{.keyringProvider | bold }}. Try running {{"dgit init" | bold | cyan}} again.
+Could not load your decentragit private key from {{.keyringProvider | bold }}. Try running {{"git dg init" | bold | cyan}} again.
 `
 
 var UserSeedPhraseCreated = `
@@ -72,24 +72,24 @@ var UserNotFound = `
 {{print "user " .user " does not exist" | bold | red}}
 `
 
-var UserNotConfigured = "\nNo dgit username configured. Run `git config --global dgit.username your-username`.\n"
+var UserNotConfigured = "\nNo decentragit username configured. Run `git config --global {{.configSection}}.username your-username`.\n"
 
 var UserRestored = `
-Your dgit user {{.username | bold | yellow}} has been restored. This machine is now authorized to push to dgit repos it owns.
+Your decentragit user {{.username | bold | yellow}} has been restored. This machine is now authorized to push to decentragit repos it owns.
 `
 
 var RepoCreated = `
-Your dgit repo has been created at {{.repo | bold | yellow}}.
+Your decentragit repo has been created at {{.repo | bold | yellow}}.
 
-dgit repo identities and authorizations are secured by Tupelo - this repo's unique id is {{.did | bold | yellow}}.
+decentragit repo identities and authorizations are secured by Tupelo - this repo's unique id is {{.did | bold | yellow}}.
 
 Storage of the repo is backed by Sia Skynet.
 `
 
 var RepoNotFound = `
-{{"dgit repository does not exist." | bold | red}}
+{{"decentragit repository does not exist." | bold | red}}
 
-You can create a dgit repository by running {{"dgit init" | bold | cyan}}.
+You can create a decentragit repository by running {{"git dg init" | bold | cyan}}.
 `
 
 var RepoNotFoundInPath = `
@@ -101,5 +101,5 @@ If you would like to create a new repo, use {{"git init" | bold | cyan}} normall
 `
 
 var UsernamePrompt = `
-{{ "What dgit username would you like to use?" | bold | green }}
+{{ "What decentragit username would you like to use?" | bold | green }}
 `

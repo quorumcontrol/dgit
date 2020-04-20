@@ -51,7 +51,7 @@ var remoteHelperCommand = &cobra.Command{
 
 		r := remotehelper.New(local)
 
-		log.Infof("dgit remote helper loaded for %s", os.Getenv("GIT_DIR"))
+		log.Infof("decentragit remote helper loaded for %s", os.Getenv("GIT_DIR"))
 
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Usage: git-remote-dgit <remote-name> <url>")
@@ -60,7 +60,7 @@ var remoteHelperCommand = &cobra.Command{
 
 		client, err := dgit.NewClient(ctx, os.Getenv("GIT_DIR"))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Sprintf("error starting dgit client: %v", err))
+			fmt.Fprintln(os.Stderr, fmt.Sprintf("error starting decentragit client: %v", err))
 			os.Exit(1)
 		}
 		client.RegisterAsDefault()

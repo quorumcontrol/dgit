@@ -9,14 +9,14 @@
     <img src="dgit-black.png" alt="Logo" width="150" height="125">
   </a>
 
-  <h3 align="center">dgit</h3>
+  <h3 align="center">decentragit</h3>
 
   <p align="center">
-    <b>dgit</b> is an open-source project built by <a href="https://www.tupelo.org/">Quorum Control</a> which combines
+    <b>decentragit</b> is an open-source project built by <a href="https://www.tupelo.org/">Quorum Control</a> which combines
     the power of <br>git, the <a href="https://docs.tupelo.org/">Tupelo DLT</a> and <a href="https://siasky.net/">Skynet</a> from Sia.  <br>
-    <b>dgit</b> uses decentralized ownership and storage to make it trivial to
+    <b>decentragit</b> uses decentralized ownership and storage to make it trivial to
     create a decentralized, shareable git remote of your project.<br>
-    <b>dgit</b> accomplishes this without changing your GitHub workflow except that you can keep collaborating when it goes down.<br>
+    <b>decentragit</b> accomplishes this without changing your GitHub workflow except that you can keep collaborating when it goes down.<br>
   </p>
 </p>
 
@@ -35,13 +35,13 @@ brew tap quorumcontrol/dgit && brew install dgit
 ### Usage
 Next you will need to initialize each repo you want to make decentralized:
 ```
-dgit init
+git dg init
 ```
 
 This command does three things.<br>
-1. <b>dgit</b> sets the appropriate remote urls in your repo's .git/config file.<br>
-2. <b>dgit</b> creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.<br>
-3. <b>dgit</b> stores that repo on Skynet, the decentralized storage solution from Sia. 
+1. <b>decentragit</b> sets the appropriate remote urls in your repo's .git/config file.<br>
+2. <b>decentragit</b> creates a [ChainTree](https://docs.tupelo.org/docs/chaintree.html) which gets signed by the Tupelo DLT to specify ownership of the decentralized repo.<br>
+3. <b>decentragit</b> stores that repo on Skynet, the decentralized storage solution from Sia. 
 
 From there you can proceed with normal git commands.<br>
 
@@ -51,15 +51,15 @@ As an example:
 <br>
 
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
-a simple github action as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed yourde dgit decentralized shareable remote will always be up to date and ready when you need it.<br>
+a simple github action as illustrated in [dgit-github-action](https://github.com/quorumcontrol/dgit-github-action) is all it takes.  Once completed your decentragit decentralized shareable remote will always be up to date and ready when you need it.<br>
 
 #### Collaborators
 
-You can manage your repo's team of collaborators with the `dgit team` command:
+You can manage your repo's team of collaborators with the `git gd team` command:
 
-* `dgit team add [collaborator usernames]`
-* `dgit team list`
-* `dgit team remove [usernames]`
+* `git dg team add [collaborator usernames]`
+* `git dg team list`
+* `git dg team remove [usernames]`
 
 Anyone on the team will be allowed to push to the repo in the current directory.
 
@@ -67,8 +67,8 @@ Anyone on the team will be allowed to push to the repo in the current directory.
 
 - Username can be set any of the following ways:
   - `DGIT_USERNAME=[username]` env var
-  - `git config --global dgit.username [username]` sets it in `~/.gitconfig`
-  - `git config dgit.username [username]` sets it in `./.git/config`
+  - `git config --global decentragit.username [username]` sets it in `~/.gitconfig`
+  - `git config decentragit.username [username]` sets it in `./.git/config`
 
 ### FAQ
 
@@ -82,7 +82,7 @@ You can find answers to some of the most [frequently asked questions on the wiki
 
 ### Building
 - Clone this repo.
-- Run `make`. Generates `./dgit` in top level dir.
+- Run `make`. Generates `./git-dg` in top level dir.
 
 <!-- CONTRIBUTING -->
 ## Contributing

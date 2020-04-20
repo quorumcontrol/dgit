@@ -20,7 +20,7 @@ import (
 
 const TupeloTxnBatchSize = 75
 
-var log = logging.Logger("dgit.storage.siaskynet")
+var log = logging.Logger("decentragit.storage.siaskynet")
 
 type ObjectStorage struct {
 	*storage.ChaintreeObjectStorage

@@ -12,12 +12,11 @@ import (
 
 const defaultLogLevel = "PANIC"
 
-var log = logging.Logger("dgit.cmd")
+var log = logging.Logger("decentragit.cmd")
 
 var rootCmd = &cobra.Command{
-	Use:   "dgit",
-	Short: "dgit is git with decentralized ownership and storage",
-	Long:  `This is the dgit CLI, useful for initializing dgit in repos.`,
+	Use:   "git gd [command]",
+	Short: "decentragit is git with decentralized ownership and storage",
 }
 
 func Execute() {
@@ -31,7 +30,7 @@ func Execute() {
 }
 
 func globalDebugLogs() {
-	log.Infof("dgit version: " + Version)
+	log.Infof("decentragit version: " + Version)
 	log.Infof("goos: " + runtime.GOOS)
 	log.Infof("goarch: " + runtime.GOARCH)
 }
@@ -40,13 +39,13 @@ func setLogLevel() {
 	// turn off all logging, mainly for silencing tupelo-go-sdk ERROR logs
 	logging.SetAllLoggers(logging.LevelPanic)
 
-	// now set dgit.* logs if applicable
+	// now set decentragit.* logs if applicable
 	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
 	if !ok {
 		logLevelStr = defaultLogLevel
 	}
 
-	err := logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr))
+	err := logging.SetLogLevelRegex("decentragit.*", strings.ToUpper(logLevelStr))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "invalid value %s given for DGIT_LOG_LEVEL: %v\n", logLevelStr, err)
 	}

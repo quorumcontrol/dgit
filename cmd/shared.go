@@ -38,7 +38,7 @@ func newClient(ctx context.Context, repo *dgit.Repo) (*dgit.Client, error) {
 
 	client, err := dgit.NewClient(ctx, repoGitPath)
 	if err != nil {
-		return nil, fmt.Errorf("error starting dgit client: %w", err)
+		return nil, fmt.Errorf("error starting decentragit client: %w", err)
 	}
 	client.RegisterAsDefault()
 

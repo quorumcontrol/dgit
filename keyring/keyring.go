@@ -13,7 +13,7 @@ import (
 	logging "github.com/ipfs/go-log"
 )
 
-var log = logging.Logger("dgit.keyring")
+var log = logging.Logger("decentragit.keyring")
 
 type Keyring struct {
 	kr keyringlib.Keyring
@@ -148,7 +148,7 @@ func (k *Keyring) CreatePrivateKey(keyName string, seed []byte) (*ecdsa.PrivateK
 
 	err = k.kr.Set(privateKeyItem)
 	if err != nil {
-		return nil, fmt.Errorf("error saving private key for dgit: %v", err)
+		return nil, fmt.Errorf("error saving private key for decentragit: %v", err)
 	}
 
 	return privateKey, nil
