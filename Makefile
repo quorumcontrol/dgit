@@ -9,6 +9,10 @@ VERSION ?= $(or $(DEV_VERSION),$(GIT_VERSION))
 GOLDFLAGS += -X main.Version=$(VERSION)
 GOFLAGS = -ldflags "$(GOLDFLAGS)"
 
+ifeq ($(PREFIX),)
+	PREFIX := $(or $(FIRSTGOPATH),/usr/local)
+endif
+
 all: build
 
 dgit: go.mod go.sum $(gosources)
@@ -26,12 +30,6 @@ dist/arm64v%/dgit: go.mod go.sum $(gosources)
 
 build-linux-arm: dist/armv6/dgit dist/armv7/dgit dist/arm64v8/dgit
 
-$(FIRSTGOPATH)/bin/dgit: dgit
-	cp $< $(FIRSTGOPATH)/bin/$<
-
-$(FIRSTGOPATH)/bin/git-remote-dgit: git-remote-dgit
-	cp $< $(FIRSTGOPATH)/bin/$<
-
 dgit.tar.gz: dgit git-remote-dgit
 	tar -czvf dgit.tar.gz $^
 
@@ -45,11 +43,14 @@ tarball: dgit.tar.gz
 
 tarball-linux-arm: dist/armv6/dgit.tar.gz dist/armv7/dgit.tar.gz dist/arm64v8/dgit.tar.gz
 
-install: $(FIRSTGOPATH)/bin/dgit $(FIRSTGOPATH)/bin/git-remote-dgit
+install: dgit git-remote-dgit
+	install -d $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 dgit $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 git-remote-dgit $(DESTDIR)$(PREFIX)/bin/
 
 uninstall:
-	rm -f $(FIRSTGOPATH)/bin/dgit
-	rm -f $(FIRSTGOPATH)/bin/git-remote-dgit
+	rm -f $(DESTDIR)$(PREFIX)/bin/dgit
+	rm -f $(DESTDIR)$(PREFIX)/bin/git-remote-dgit
 
 test:
 	go test ./...
