@@ -15,7 +15,7 @@ func Parse(str string, data map[string]interface{}) string {
 	var buf bytes.Buffer
 	tmpl, err := template.New("msg.Parse").Funcs(promptui.FuncMap).Parse(str)
 	if err != nil {
-		panic(fmt.Errorf("could not compile template:\ntemplate: %s\nerr: %w", str, data, err))
+		panic(fmt.Errorf("could not compile template:\ntemplate: %s\ndata: %+v\nerr: %w", str, data, err))
 	}
 	err = tmpl.Execute(&buf, data)
 	if err != nil {
