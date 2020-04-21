@@ -16,7 +16,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 )
 
-var RepoConfigPath = []string{"tree", "data", "dgit", "config"}
+var RepoConfigPath = []string{"tree", "data", "config"}
 
 const defaultStorageProvider = "chaintree"
 

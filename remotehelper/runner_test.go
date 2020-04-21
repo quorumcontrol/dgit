@@ -32,7 +32,7 @@ func TestRunnerIntegration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := os.Setenv("DGIT_OBJ_STORAGE", "chaintree")
+	err := os.Setenv("DG_OBJ_STORAGE", "chaintree")
 	require.Nil(t, err)
 
 	// Just generating a random username
@@ -40,14 +40,14 @@ func TestRunnerIntegration(t *testing.T) {
 	require.Nil(t, err)
 	username := strings.ToLower(crypto.PubkeyToAddress(key.PublicKey).String()[20:])
 
-	err = os.Setenv("DGIT_USERNAME", username)
+	err = os.Setenv("DG_USERNAME", username)
 	require.Nil(t, err)
 
 	client, err := dgit.NewLocalClient(ctx)
 	require.Nil(t, err)
 	client.RegisterAsDefault()
 
-	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
+	logLevelStr, ok := os.LookupEnv("DG_LOG_LEVEL")
 	if ok {
 		require.Nil(t, logging.SetLogLevelRegex("decentragit.*", strings.ToUpper(logLevelStr)))
 	}
@@ -85,10 +85,9 @@ func TestRunnerIntegration(t *testing.T) {
 	auth := dgit.NewPrivateKeyAuth(pkey)
 
 	_, err = usertree.Create(ctx, &usertree.Options{
-		Name:      username,
-		Tupelo:    client.Tupelo,
-		NodeStore: client.Nodestore,
-		Owners:    []string{auth.String()},
+		Name:   username,
+		Tupelo: client.Tupelo,
+		Owners: []string{auth.String()},
 	})
 	require.Nil(t, err)
 

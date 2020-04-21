@@ -39,7 +39,7 @@ var ErrKeyNotFound = keyringlib.ErrKeyNotFound
 
 func NewDefault() (*Keyring, error) {
 	kr, err := keyringlib.Open(keyringlib.Config{
-		ServiceName:                    "dgit",
+		ServiceName:                    "decentragit",
 		KeychainTrustApplication:       true,
 		KeychainAccessibleWhenUnlocked: true,
 		AllowedBackends:                secureKeyringBackends,
@@ -65,41 +65,11 @@ func (k *Keyring) Name() string {
 	return name
 }
 
-func (k *Keyring) migrateOldDefaultKey(keyName string) (*keyringlib.Item, error) {
-	oldDefault, err := k.kr.Get("default")
-	if err == keyringlib.ErrKeyNotFound {
-		log.Debugf("no dgit.default key found")
-		return nil, ErrKeyNotFound
-	}
-
-	if err == nil {
-		log.Debugf("migrating old dgit.default key to dgit.%s", keyName)
-		oldDefault.Key = keyName
-		oldDefault.Label = "dgit." + keyName
-		err = k.kr.Set(oldDefault)
-		if err != nil {
-			log.Errorf("error migrating dgit.default key: %v", err)
-			return nil, err
-		}
-		remErr := k.kr.Remove("default")
-		if remErr != nil {
-			log.Warnf("error removing old dgit.default key: %v", remErr)
-		}
-	}
-
-	return &oldDefault, err
-}
-
 func (k *Keyring) FindPrivateKey(keyName string) (key *ecdsa.PrivateKey, err error) {
 	log.Debugf("finding private key %s", keyName)
 	privateKeyItem, err := k.kr.Get(keyName)
-	if err == keyringlib.ErrKeyNotFound {
-		log.Debugf("private key %s not found; attempting to migrate old dgit.default key", keyName)
-		migratedItem, err := k.migrateOldDefaultKey(keyName)
-		if err != nil {
-			return nil, err
-		}
-		privateKeyItem = *migratedItem
+	if err != nil {
+		return nil, err
 	}
 
 	privateKeyBytes, err := hexutil.Decode(string(privateKeyItem.Data))
@@ -142,7 +112,7 @@ func (k *Keyring) CreatePrivateKey(keyName string, seed []byte) (*ecdsa.PrivateK
 
 	privateKeyItem := keyringlib.Item{
 		Key:   keyName,
-		Label: "dgit." + keyName,
+		Label: "decentragit." + keyName,
 		Data:  []byte(hexutil.Encode(crypto.FromECDSA(privateKey))),
 	}
 
@@ -157,6 +127,6 @@ func (k *Keyring) CreatePrivateKey(keyName string, seed []byte) (*ecdsa.PrivateK
 func (k *Keyring) DeletePrivateKey(keyName string) {
 	err := k.kr.Remove(keyName)
 	if err != nil {
-		log.Warnf("error removing dgit.%s key: %w", keyName, err)
+		log.Warnf("error removing decentragit.%s key: %w", keyName, err)
 	}
 }

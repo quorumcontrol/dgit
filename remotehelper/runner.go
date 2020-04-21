@@ -305,6 +305,11 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 
 	envUsername := os.Getenv("DGIT_USERNAME")
 	if envUsername != "" {
+		log.Warningf("[DEPRECATION] - DGIT_USERNAME is deprecated, please use DG_USERNAME")
+		username = envUsername
+	}
+	envUsername = os.Getenv("DG_USERNAME")
+	if envUsername != "" {
 		username = envUsername
 	}
 
@@ -325,19 +330,24 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 }
 
 func (r *Runner) authFromEnv() (transport.AuthMethod, error) {
-	privateKeyEnv, ok := os.LookupEnv("DGIT_PRIVATE_KEY")
+	privateKeyEnv, ok := os.LookupEnv("DG_PRIVATE_KEY")
 	if !ok {
-		return nil, nil
+		// TODO: remove backward compatible usage
+		privateKeyEnv, ok = os.LookupEnv("DGIT_PRIVATE_KEY")
+		if !ok {
+			log.Warningf("[DEPRECATION] - DGIT_PRIVATE_KEY is deprecated, please use DG_PRIVATE_KEY")
+			return nil, nil
+		}
 	}
 
 	privateKeyBytes, err := hexutil.Decode(privateKeyEnv)
 	if err != nil {
-		return nil, fmt.Errorf("error hex decoding DGIT_PRIVATE_KEY: %v", err)
+		return nil, fmt.Errorf("error hex decoding DG_PRIVATE_KEY: %v", err)
 	}
 
 	privateKey, err := crypto.ToECDSA(privateKeyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling DGIT_PRIVATE_KEY into ECDSA private key: %v", err)
+		return nil, fmt.Errorf("error unmarshalling DG_PRIVATE_KEY into ECDSA private key: %v", err)
 	}
 
 	return dgit.NewPrivateKeyAuth(privateKey), nil

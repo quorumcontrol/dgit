@@ -40,13 +40,20 @@ func setLogLevel() {
 	logging.SetAllLoggers(logging.LevelPanic)
 
 	// now set decentragit.* logs if applicable
-	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
+	logLevelStr, ok := os.LookupEnv("DG_LOG_LEVEL")
 	if !ok {
+		logLevelStr, ok = os.LookupEnv("DGIT_LOG_LEVEL")
+		if ok {
+			log.Warningf("[DEPRECATION] - DGIT_LOG_LEVEL is deprecated, please use DG_LOG_LEVEL")
+		}
+	}
+
+	if logLevelStr == "" {
 		logLevelStr = defaultLogLevel
 	}
 
 	err := logging.SetLogLevelRegex("decentragit.*", strings.ToUpper(logLevelStr))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "invalid value %s given for DGIT_LOG_LEVEL: %v\n", logLevelStr, err)
+		fmt.Fprintf(os.Stderr, "invalid value %s given for DG_LOG_LEVEL: %v\n", logLevelStr, err)
 	}
 }

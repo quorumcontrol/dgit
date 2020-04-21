@@ -136,6 +136,11 @@ func (r *Repo) Username() (string, error) {
 
 	envUsername := os.Getenv("DGIT_USERNAME")
 	if envUsername != "" {
+		log.Warningf("[DEPRECATION] - DGIT_USERNAME is deprecated, please use DG_USERNAME")
+		username = envUsername
+	}
+	envUsername = os.Getenv("DG_USERNAME")
+	if envUsername != "" {
 		username = envUsername
 	}
 

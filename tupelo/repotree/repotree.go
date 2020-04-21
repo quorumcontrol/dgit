@@ -26,7 +26,7 @@ var log = logging.Logger("decentragit.repotree")
 
 var ErrNotFound = tree.ErrNotFound
 
-var teamsMapPath = []string{"dgit", "teams"}
+var teamsMapPath = []string{"teams"}
 
 type Options struct {
 	Name              string
@@ -104,6 +104,10 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 	}
 
 	if storage, found := os.LookupEnv("DGIT_OBJ_STORAGE"); found {
+		log.Warningf("[DEPRECATION] - DGIT_OBJ_STORAGE is deprecated, please use DG_OBJ_STORAGE")
+		opts.ObjectStorageType = storage
+	}
+	if storage, found := os.LookupEnv("DG_OBJ_STORAGE"); found {
 		opts.ObjectStorageType = storage
 	}
 	if opts.ObjectStorageType == "" {
@@ -111,7 +115,7 @@ func Create(ctx context.Context, opts *Options, ownerKey *ecdsa.PrivateKey) (*Re
 	}
 
 	config := map[string]map[string]string{"objectStorage": {"type": opts.ObjectStorageType}}
-	configTxn, err := chaintree.NewSetDataTransaction("dgit/config", config)
+	configTxn, err := chaintree.NewSetDataTransaction("config", config)
 	if err != nil {
 		return nil, err
 	}

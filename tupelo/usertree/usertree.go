@@ -21,11 +21,11 @@ type UserTree struct {
 
 var log = logging.Logger("decentragit.usertree")
 
-const userSalt = "dgit-user-v0"
+const userSalt = "decentragit-user-v0"
 
 var namedTreeGen *namedtree.Generator
 
-var reposMapPath = []string{"dgit", "repos"}
+var reposMapPath = []string{"repos"}
 
 var ErrNotFound = tree.ErrNotFound
 
