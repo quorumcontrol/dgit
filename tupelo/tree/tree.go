@@ -79,17 +79,27 @@ func New(name string, chainTree *consensus.SignedChainTree, tupelo *client.Clien
 }
 
 func Create(ctx context.Context, opts *Options) (*Tree, error) {
-	chainTree, err := consensus.NewSignedChainTree(ctx, opts.Key.PublicKey, opts.Tupelo.DagStore())
-	if err != nil {
-		return nil, err
+	var err error
+
+	key := opts.Key
+	if key == nil {
+		key, err = crypto.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	owners := opts.Owners
 	if len(owners) == 0 {
-		owners = []string{crypto.PubkeyToAddress(opts.Key.PublicKey).String()}
+		owners = []string{crypto.PubkeyToAddress(key.PublicKey).String()}
 	}
 
-	setOwnershipTxn, err := chaintree.NewSetOwnershipTransaction(opts.Owners)
+	chainTree, err := consensus.NewSignedChainTree(ctx, key.PublicKey, opts.Tupelo.DagStore())
+	if err != nil {
+		return nil, err
+	}
+
+	setOwnershipTxn, err := chaintree.NewSetOwnershipTransaction(owners)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +125,7 @@ func Create(ctx context.Context, opts *Options) (*Tree, error) {
 		txns = append(txns, opts.AdditionalTxns...)
 	}
 
-	_, err = opts.Tupelo.PlayTransactions(ctx, chainTree, opts.Key, txns)
+	_, err = opts.Tupelo.PlayTransactions(ctx, chainTree, key, txns)
 	if err != nil {
 		return nil, err
 	}

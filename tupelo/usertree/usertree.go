@@ -35,6 +35,10 @@ func init() {
 
 type Options namedtree.Options
 
+func Did(username string) (string, error) {
+	return namedTreeGen.Did(username)
+}
+
 func Find(ctx context.Context, username string, client *tupelo.Client) (*UserTree, error) {
 	namedTreeGen.Client = client
 	namedTree, err := namedTreeGen.Find(ctx, username)
@@ -77,7 +81,7 @@ func (t *UserTree) IsOwner(ctx context.Context, addr string) (bool, error) {
 }
 
 func (t *UserTree) AddRepo(ctx context.Context, ownerKey *ecdsa.PrivateKey, reponame string, did string) error {
-	log.Debugf("adding repo %s (%s) to user %s (%s)", reponame, did, t.Name, t.Did())
+	log.Debugf("adding repo %s (%s) to user %s (%s)", reponame, did, t.Name(), t.Did())
 
 	path := strings.Join(append(reposMapPath, reponame), "/")
 	repoTxn, err := chaintree.NewSetDataTransaction(path, did)
