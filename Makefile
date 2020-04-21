@@ -30,27 +30,27 @@ dist/arm64v%/git-dg: go.mod go.sum $(gosources)
 
 build-linux-arm: dist/armv6/git-dg dist/armv7/git-dg dist/arm64v8/git-dg
 
-decentragit.tar.gz: git-dg git-remote-dgit
+decentragit.tar.gz: git-dg git-remote-dg
 	tar -czvf decentragit.tar.gz $^
 
-dist/armv%/decentragit.tar.gz: dist/armv%/git-dg git-remote-dgit
+dist/armv%/decentragit.tar.gz: dist/armv%/git-dg git-remote-dg
 	tar -czvf $@ $^
 
-dist/arm64v%/decentragit.tar.gz: dist/arm64v%/git-dg git-remote-dgit
+dist/arm64v%/decentragit.tar.gz: dist/arm64v%/git-dg git-remote-dg
 	tar -czvf $@ $^
 
 tarball: decentragit.tar.gz
 
 tarball-linux-arm: dist/armv6/decentragit.tar.gz dist/armv7/decentragit.tar.gz dist/arm64v8/decentragit.tar.gz
 
-install: git-dg git-remote-dgit
+install: git-dg git-remote-dg
 	install -d $(DESTDIR)$(PREFIX)/bin/
 	install -m 755 git-dg $(DESTDIR)$(PREFIX)/bin/
-	install -m 755 git-remote-dgit $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 git-remote-dg $(DESTDIR)$(PREFIX)/bin/
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/git-dg
-	rm -f $(DESTDIR)$(PREFIX)/bin/git-remote-dgit
+	rm -f $(DESTDIR)$(PREFIX)/bin/git-remote-dg
 
 test:
 	go test ./...

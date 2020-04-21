@@ -23,7 +23,7 @@ func init() {
 var remoteHelperCommand = &cobra.Command{
 	Use:    "remote-helper",
 	Short:  "A git-remote-helper called by git directly. Not for direct use!",
-	Long:   `Implements a git-remote-helper (https://git-scm.com/docs/git-remote-helpers), registering and handling the dgit:// protocol.`,
+	Long:   `Implements a git-remote-helper (https://git-scm.com/docs/git-remote-helpers), registering and handling the dg:// protocol.`,
 	Args:   cobra.ArbitraryArgs,
 	Hidden: true,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -54,7 +54,7 @@ var remoteHelperCommand = &cobra.Command{
 		log.Infof("decentragit remote helper loaded for %s", os.Getenv("GIT_DIR"))
 
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Usage: git-remote-dgit <remote-name> <url>")
+			fmt.Fprintln(os.Stderr, "Usage: git-remote-dg <remote-name> <url>")
 			os.Exit(1)
 		}
 

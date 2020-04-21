@@ -59,7 +59,7 @@ func New(local *git.Repository) *Runner {
 //
 
 func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) error {
-	log.Infof("running git-remote-dgit on remote %s with url %s", remoteName, remoteUrl)
+	log.Infof("running git-remote-dg on remote %s with url %s", remoteName, remoteUrl)
 
 	// get the named remote as reported by git, but then
 	// create a new remote with only the url specified

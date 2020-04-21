@@ -1,7 +1,7 @@
 package constants
 
 const (
-	Protocol          = "dgit"
+	Protocol          = "dg"
 	DgitConfigSection = "decentragit"
-	DgitRemote        = "decentragit"
+	DgitRemote        = "dg"
 )

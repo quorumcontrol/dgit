@@ -58,8 +58,8 @@ func TestRunnerIntegration(t *testing.T) {
 	local, err := git.Open(store, nil)
 	require.Nil(t, err)
 
-	// Just a random dgit url
-	endpoint, err := transport.NewEndpoint("dgit://" + username + "/test")
+	// Just a random dg url
+	endpoint, err := transport.NewEndpoint("dg://" + username + "/test")
 	require.Nil(t, err)
 
 	remoteConfig := &config.RemoteConfig{

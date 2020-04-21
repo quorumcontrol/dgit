@@ -45,9 +45,9 @@ This command does three things.<br>
 
 From there you can proceed with normal git commands.<br>
 
-If you ever want to pull from the mirror you can specify the mirror with a "dgit:".<br>
+If you ever want to pull from the mirror you can specify the mirror with a "dg:".<br>
 As an example:
-`git clone dgit://your_username/repo_name`
+`git clone dg://your_username/repo_name`
 <br>
 
 If you want to keep your decentralized, shareable git remote in sync with your GitHub repo adding
