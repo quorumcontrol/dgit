@@ -31,7 +31,7 @@ import (
 	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
 
-var log = logging.Logger("dgit.initializer")
+var log = logging.Logger("decentragit.initializer")
 
 var validRepoName = regexp.MustCompile(`^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+`)
 

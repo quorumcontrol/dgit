@@ -23,7 +23,7 @@ import (
 	"github.com/quorumcontrol/dgit/transport/dgit"
 )
 
-var log = logging.Logger("dgit.runner")
+var log = logging.Logger("decentragit.runner")
 
 type Runner struct {
 	local   *git.Repository
@@ -59,7 +59,7 @@ func New(local *git.Repository) *Runner {
 //
 
 func (r *Runner) Run(ctx context.Context, remoteName string, remoteUrl string) error {
-	log.Infof("running git-remote-dgit on remote %s with url %s", remoteName, remoteUrl)
+	log.Infof("running git-remote-dg on remote %s with url %s", remoteName, remoteUrl)
 
 	// get the named remote as reported by git, but then
 	// create a new remote with only the url specified
@@ -309,7 +309,9 @@ func (r *Runner) auth() (transport.AuthMethod, error) {
 	}
 
 	if username == "" {
-		return nil, fmt.Errorf(msg.UserNotConfigured)
+		return nil, fmt.Errorf(msg.Parse(msg.UserNotConfigured, map[string]interface{}{
+			"configSection": constants.DgitConfigSection,
+		}))
 	}
 
 	privateKey, err := r.keyring.FindPrivateKey(username)

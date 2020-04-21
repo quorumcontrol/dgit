@@ -15,47 +15,47 @@ endif
 
 all: build
 
-dgit: go.mod go.sum $(gosources)
-	go build -o dgit $(GOFLAGS) .
+git-dg: go.mod go.sum $(gosources)
+	go build -o $@ $(GOFLAGS) .
 
-build: dgit
+build: git-dg
 
-dist/armv%/dgit: go.mod go.sum $(gosources)
+dist/armv%/git-dg: go.mod go.sum $(gosources)
 	mkdir -p $(@D)
-	env GOOS=linux GOARCH=arm GOARM=$* go build -o $@
+	env GOOS=linux GOARCH=arm GOARM=$* go build -o $@ $(GOFLAGS)
 
-dist/arm64v%/dgit: go.mod go.sum $(gosources)
+dist/arm64v%/git-dg: go.mod go.sum $(gosources)
 	mkdir -p $(@D)
-	env GOOS=linux GOARCH=arm64 go build -o $@
+	env GOOS=linux GOARCH=arm64 go build -o $@ $(GOFLAGS)
 
-build-linux-arm: dist/armv6/dgit dist/armv7/dgit dist/arm64v8/dgit
+build-linux-arm: dist/armv6/git-dg dist/armv7/git-dg dist/arm64v8/git-dg
 
-dgit.tar.gz: dgit git-remote-dgit
-	tar -czvf dgit.tar.gz $^
+decentragit.tar.gz: git-dg git-remote-dg
+	tar -czvf decentragit.tar.gz $^
 
-dist/armv%/dgit.tar.gz: dist/armv%/dgit git-remote-dgit
+dist/armv%/decentragit.tar.gz: dist/armv%/git-dg git-remote-dg
 	tar -czvf $@ $^
 
-dist/arm64v%/dgit.tar.gz: dist/arm64v%/dgit git-remote-dgit
+dist/arm64v%/decentragit.tar.gz: dist/arm64v%/git-dg git-remote-dg
 	tar -czvf $@ $^
 
-tarball: dgit.tar.gz
+tarball: decentragit.tar.gz
 
-tarball-linux-arm: dist/armv6/dgit.tar.gz dist/armv7/dgit.tar.gz dist/arm64v8/dgit.tar.gz
+tarball-linux-arm: dist/armv6/decentragit.tar.gz dist/armv7/decentragit.tar.gz dist/arm64v8/decentragit.tar.gz
 
-install: dgit git-remote-dgit
+install: git-dg git-remote-dg
 	install -d $(DESTDIR)$(PREFIX)/bin/
-	install -m 755 dgit $(DESTDIR)$(PREFIX)/bin/
-	install -m 755 git-remote-dgit $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 git-dg $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 git-remote-dg $(DESTDIR)$(PREFIX)/bin/
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/dgit
-	rm -f $(DESTDIR)$(PREFIX)/bin/git-remote-dgit
+	rm -f $(DESTDIR)$(PREFIX)/bin/git-dg
+	rm -f $(DESTDIR)$(PREFIX)/bin/git-remote-dg
 
 test:
 	go test ./...
 
 clean:
-	rm -f dgit dgit.tar.gz
+	rm -f git-dg dgit.tar.gz
 
 .PHONY: all build build-linux-arm tarball tarball-linux-arm install uninstall test clean

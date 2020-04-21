@@ -6,7 +6,9 @@
 *.dylib
 decentragit-remote
 /dgit
+/git-dg
 /dgit.tar.gz
+/decentragit.tar.gz
 
 # Test binary, built with `go test -c`
 *.test

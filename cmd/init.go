@@ -16,9 +16,9 @@ func init() {
 
 var initCommand = &cobra.Command{
 	Use:   "init",
-	Short: "Get rolling with dgit!",
+	Short: "Get rolling with decentragit!",
 	// TODO: better explanation
-	Long: `Sets up a repo to leverage dgit.`,
+	Long: `Sets up a repo to leverage decentragit.`,
 	Args: cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx, cancel := context.WithCancel(context.Background())

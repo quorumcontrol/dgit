@@ -117,7 +117,7 @@ func BuildWithConfig(ctx context.Context, config *Config) (*tupelo.Client, *p2p.
 	p2pHost, peer, err := p2p.NewHostAndBitSwapPeer(
 		ctx,
 		p2p.WithDiscoveryNamespaces(ngConfig.ID),
-		p2p.WithBitswapOptions(bitswap.ProvideEnabled(false)), // maybe this should be true if there is a long running dgit node
+		p2p.WithBitswapOptions(bitswap.ProvideEnabled(false)), // maybe this should be true if there is a long running decentragit node
 		p2p.WithBlockstore(bs),
 	)
 	if err != nil {

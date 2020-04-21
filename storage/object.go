@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var log = logging.Logger("dgit.storage.object")
+var log = logging.Logger("decentragit.storage.object")
 
 type ChaintreeObjectStorer interface {
 	storer.EncodedObjectStorer

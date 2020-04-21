@@ -49,7 +49,7 @@ func TestRunnerIntegration(t *testing.T) {
 
 	logLevelStr, ok := os.LookupEnv("DGIT_LOG_LEVEL")
 	if ok {
-		require.Nil(t, logging.SetLogLevelRegex("dgit.*", strings.ToUpper(logLevelStr)))
+		require.Nil(t, logging.SetLogLevelRegex("decentragit.*", strings.ToUpper(logLevelStr)))
 	}
 
 	localRepoFs := fixtures.Basic().One().DotGit()
@@ -58,8 +58,8 @@ func TestRunnerIntegration(t *testing.T) {
 	local, err := git.Open(store, nil)
 	require.Nil(t, err)
 
-	// Just a random dgit url
-	endpoint, err := transport.NewEndpoint("dgit://" + username + "/test")
+	// Just a random dg url
+	endpoint, err := transport.NewEndpoint("dg://" + username + "/test")
 	require.Nil(t, err)
 
 	remoteConfig := &config.RemoteConfig{
