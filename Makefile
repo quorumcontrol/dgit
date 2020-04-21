@@ -30,12 +30,6 @@ dist/arm64v%/git-dg: go.mod go.sum $(gosources)
 
 build-linux-arm: dist/armv6/git-dg dist/armv7/git-dg dist/arm64v8/git-dg
 
-$(FIRSTGOPATH)/bin/git-dg: git-dg
-	cp $< $(FIRSTGOPATH)/bin/$<
-
-$(FIRSTGOPATH)/bin/git-remote-dgit: git-remote-dgit
-	cp $< $(FIRSTGOPATH)/bin/$<
-
 decentragit.tar.gz: git-dg git-remote-dgit
 	tar -czvf decentragit.tar.gz $^
 
