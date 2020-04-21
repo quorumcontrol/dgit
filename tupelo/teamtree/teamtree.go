@@ -17,7 +17,7 @@ var log = logging.Logger("decentragit.teamtree")
 
 var ErrNotFound = tree.ErrNotFound
 
-var membersPath = []string{"dgit", "members"}
+var membersPath = []string{"members"}
 
 type Options struct {
 	Name    string

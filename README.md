@@ -66,7 +66,7 @@ Anyone on the team will be allowed to push to the repo in the current directory.
 #### Configuration
 
 - Username can be set any of the following ways:
-  - `DGIT_USERNAME=[username]` env var
+  - `DG_USERNAME=[username]` env var
   - `git config --global decentragit.username [username]` sets it in `~/.gitconfig`
   - `git config decentragit.username [username]` sets it in `./.git/config`
 

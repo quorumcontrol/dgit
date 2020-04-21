@@ -55,16 +55,16 @@ func Find(ctx context.Context, tupelo *client.Client, did string) (*Tree, error)
 		return nil, ErrNotFound
 	}
 
-	name, _, err := chainTree.ChainTree.Dag.Resolve(ctx, []string{"tree", "data", "dgit", "name"})
+	name, _, err := chainTree.ChainTree.Dag.Resolve(ctx, []string{"tree", "data", "name"})
 	if err != nil {
 		return nil, err
 	}
 	if name == nil {
-		return nil, fmt.Errorf("Invalid dgit ChainTree, must have dgit/name set")
+		return nil, fmt.Errorf("Invalid dgit ChainTree, must have .name set")
 	}
 	nameStr, ok := name.(string)
 	if !ok {
-		return nil, fmt.Errorf("Invalid dgit ChainTree, dgit/name must be a string, got %T", name)
+		return nil, fmt.Errorf("Invalid dgit ChainTree, .name must be a string, got %T", name)
 	}
 
 	return New(nameStr, chainTree, tupelo), nil
@@ -104,12 +104,12 @@ func Create(ctx context.Context, opts *Options) (*Tree, error) {
 		return nil, err
 	}
 
-	nameTxn, err := chaintree.NewSetDataTransaction("dgit/name", opts.Name)
+	nameTxn, err := chaintree.NewSetDataTransaction("name", opts.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	creationTimestampTxn, err := chaintree.NewSetDataTransaction("dgit/createdAt", time.Now().Unix())
+	creationTimestampTxn, err := chaintree.NewSetDataTransaction("createdAt", time.Now().Unix())
 	if err != nil {
 		return nil, err
 	}
