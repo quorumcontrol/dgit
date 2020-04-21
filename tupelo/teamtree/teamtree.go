@@ -13,7 +13,7 @@ import (
 	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 )
 
-var log = logging.Logger("dgit.teamtree")
+var log = logging.Logger("decentragit.teamtree")
 
 var ErrNotFound = tree.ErrNotFound
 
