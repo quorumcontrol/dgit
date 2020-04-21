@@ -17,6 +17,10 @@ var teamCommand = &cobra.Command{
 	Use:   "team (add [usernames] | list | remove [usernames])",
 	Short: "Manage your repo's team of collaborators",
 	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return cmd.Help()
+		}
+
 		switch args[0] {
 		case "add", "remove":
 			if len(args) < 2 {
