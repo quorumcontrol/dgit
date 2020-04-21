@@ -63,7 +63,7 @@ func (l *ChainTreeLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
 	return chaintree.NewStorage(&storage.Config{
 		Ctx:        l.ctx,
 		Tupelo:     l.tupelo,
-		ChainTree:  repoTree.ChainTree,
+		ChainTree:  repoTree.ChainTree(),
 		PrivateKey: privateKey,
 	})
 }

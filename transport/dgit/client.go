@@ -15,6 +15,8 @@ import (
 	"github.com/quorumcontrol/dgit/constants"
 	"github.com/quorumcontrol/dgit/tupelo/clientbuilder"
 	"github.com/quorumcontrol/dgit/tupelo/repotree"
+	"github.com/quorumcontrol/dgit/tupelo/teamtree"
+	"github.com/quorumcontrol/dgit/tupelo/usertree"
 )
 
 var log = logging.Logger("decentragit.client")
@@ -72,10 +74,8 @@ func (c *Client) CreateRepoTree(ctx context.Context, endpoint *transport.Endpoin
 		return nil, fmt.Errorf("unable to cast %T to PrivateKeyAuth", auth)
 	}
 	return repotree.Create(ctx, &repotree.Options{
-		Name:      endpoint.Host + endpoint.Path,
-		Tupelo:    c.Tupelo,
-		NodeStore: c.Nodestore,
-		Owners:    []string{auth.String()},
+		Name:   endpoint.Host + endpoint.Path,
+		Tupelo: c.Tupelo,
 	}, pkAuth.Key())
 }
 
@@ -121,7 +121,22 @@ func (c *Client) AddRepoCollaborator(ctx context.Context, repo *Repo, collaborat
 		return fmt.Errorf("auth is not castable to PrivateKeyAuth; was a %T", auth)
 	}
 
-	return repoTree.AddCollaborators(ctx, collaborators, pkAuth.Key())
+	team, err := repoTree.Team(ctx, "default")
+	if err != nil {
+		return err
+	}
+
+	members := make(teamtree.Members, len(collaborators))
+	for i, username := range collaborators {
+		did, err := usertree.Did(username)
+		if err != nil {
+			return err
+		}
+
+		members[i] = teamtree.NewMember(did, username)
+	}
+
+	return team.AddMembers(ctx, pkAuth.Key(), members)
 }
 
 func (c *Client) ListRepoCollaborators(ctx context.Context, repo *Repo) ([]string, error) {
@@ -135,20 +150,17 @@ func (c *Client) ListRepoCollaborators(ctx context.Context, repo *Repo) ([]strin
 		return []string{}, err
 	}
 
-	auth, err := repo.Auth()
+	team, err := repoTree.Team(ctx, "default")
 	if err != nil {
 		return []string{}, err
 	}
 
-	var (
-		pkAuth *PrivateKeyAuth
-		ok     bool
-	)
-	if pkAuth, ok = auth.(*PrivateKeyAuth); !ok {
-		return []string{}, fmt.Errorf("could not cast auth to PrivateKeyAuth; was a %T", auth)
+	members, err := team.ListMembers(ctx)
+	if err != nil {
+		return []string{}, err
 	}
 
-	return repoTree.ListCollaborators(ctx, pkAuth.Key())
+	return members.Names(), nil
 }
 
 func (c *Client) RemoveRepoCollaborator(ctx context.Context, repo *Repo, collaborators []string) error {
@@ -175,5 +187,20 @@ func (c *Client) RemoveRepoCollaborator(ctx context.Context, repo *Repo, collabo
 		return fmt.Errorf("auth is not castable to PrivateKeyAuth; was a %T", auth)
 	}
 
-	return repoTree.RemoveCollaborators(ctx, collaborators, pkAuth.Key())
+	team, err := repoTree.Team(ctx, "default")
+	if err != nil {
+		return err
+	}
+
+	members := make(teamtree.Members, len(collaborators))
+	for i, username := range collaborators {
+		did, err := usertree.Did(username)
+		if err != nil {
+			return err
+		}
+
+		members[i] = teamtree.NewMember(did, username)
+	}
+
+	return team.RemoveMembers(ctx, pkAuth.Key(), members)
 }

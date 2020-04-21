@@ -4,16 +4,14 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"strings"
-	"time"
 
-	"github.com/quorumcontrol/chaintree/chaintree"
-	"github.com/quorumcontrol/chaintree/nodestore"
+	"github.com/quorumcontrol/dgit/tupelo/tree"
 	"github.com/quorumcontrol/messages/v2/build/go/transactions"
 	"github.com/quorumcontrol/tupelo/sdk/consensus"
 	tupelo "github.com/quorumcontrol/tupelo/sdk/gossip/client"
 )
 
-var ErrNotFound = tupelo.ErrNotFound
+var ErrNotFound = tree.ErrNotFound
 
 type Generator struct {
 	Namespace string
@@ -21,68 +19,38 @@ type Generator struct {
 }
 
 type NamedTree struct {
-	Name      string
-	ChainTree *consensus.SignedChainTree
-	Tupelo    *tupelo.Client
-
-	genesisKey *ecdsa.PrivateKey
-	nodeStore  nodestore.DagStore
-	owners     []string
+	*tree.Tree
 }
 
 type Options struct {
-	Name              string
-	ObjectStorageType string
-	Tupelo            *tupelo.Client
-	NodeStore         nodestore.DagStore
-	Owners            []string
+	Name           string
+	Tupelo         *tupelo.Client
+	Owners         []string
+	AdditionalTxns []*transactions.Transaction
 }
 
 func (g *Generator) GenesisKey(name string) (*ecdsa.PrivateKey, error) {
 	return consensus.PassPhraseKey([]byte(name), []byte(g.Namespace))
 }
 
-func (g *Generator) New(ctx context.Context, opts *Options) (*NamedTree, error) {
+func (g *Generator) Create(ctx context.Context, opts *Options) (*NamedTree, error) {
 	gKey, err := g.GenesisKey(opts.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	chainTree, err := consensus.NewSignedChainTree(ctx, gKey.PublicKey, opts.NodeStore)
+	t, err := tree.Create(ctx, &tree.Options{
+		Name:           opts.Name,
+		Key:            gKey,
+		Owners:         opts.Owners,
+		Tupelo:         opts.Tupelo,
+		AdditionalTxns: opts.AdditionalTxns,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	setOwnershipTxn, err := chaintree.NewSetOwnershipTransaction(opts.Owners)
-	if err != nil {
-		return nil, err
-	}
-
-	creationTimestampTxn, err := chaintree.NewSetDataTransaction("dgit/createdAt", time.Now().Unix())
-	if err != nil {
-		return nil, err
-	}
-
-	docTypeTxn, err := chaintree.NewSetDataTransaction("__doctype", "dgit")
-	if err != nil {
-		return nil, err
-	}
-
-	txns := []*transactions.Transaction{setOwnershipTxn, creationTimestampTxn, docTypeTxn}
-
-	_, err = opts.Tupelo.PlayTransactions(ctx, chainTree, gKey, txns)
-	if err != nil {
-		return nil, err
-	}
-
-	return &NamedTree{
-		Name:       opts.Name,
-		ChainTree:  chainTree,
-		genesisKey: gKey,
-		Tupelo:     opts.Tupelo,
-		nodeStore:  opts.NodeStore,
-		owners:     opts.Owners,
-	}, nil
+	return &NamedTree{t}, nil
 }
 
 // Did lower-cases the name arg first to ensure that chaintree
@@ -104,24 +72,10 @@ func (g *Generator) Find(ctx context.Context, name string) (*NamedTree, error) {
 		return nil, err
 	}
 
-	chainTree, err := g.Client.GetLatest(ctx, did)
-	if err == tupelo.ErrNotFound {
-		return nil, ErrNotFound
-	}
-
-	gKey, err := g.GenesisKey(name)
+	t, err := tree.Find(ctx, g.Client, did)
 	if err != nil {
 		return nil, err
 	}
 
-	return &NamedTree{
-		Name:       name,
-		ChainTree:  chainTree,
-		genesisKey: gKey,
-		Tupelo:     g.Client,
-	}, nil
-}
-
-func (t *NamedTree) Did() string {
-	return consensus.EcdsaPubkeyToDid(t.genesisKey.PublicKey)
+	return &NamedTree{t}, nil
 }
