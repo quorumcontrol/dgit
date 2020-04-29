@@ -128,12 +128,15 @@ func (c *Client) AddRepoCollaborator(ctx context.Context, repo *Repo, collaborat
 
 	members := make(teamtree.Members, len(collaborators))
 	for i, username := range collaborators {
-		did, err := usertree.Did(username)
+		user, err := usertree.Find(ctx, username, c.Tupelo)
+		if err == usertree.ErrNotFound {
+			return fmt.Errorf("User %s not found", username)
+		}
 		if err != nil {
 			return err
 		}
 
-		members[i] = teamtree.NewMember(did, username)
+		members[i] = teamtree.NewMember(user.Did(), username)
 	}
 
 	return team.AddMembers(ctx, pkAuth.Key(), members)
