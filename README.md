@@ -55,7 +55,7 @@ a simple github action as illustrated in [dgit-github-action](https://github.com
 
 #### Collaborators
 
-You can manage your repo's team of collaborators with the `git gd team` command:
+You can manage your repo's team of collaborators with the `git dg team` command:
 
 * `git dg team add [collaborator usernames]`
 * `git dg team list`
