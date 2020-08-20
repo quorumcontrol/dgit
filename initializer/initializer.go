@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+    "io/ioutil"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-git/go-git/v5"
@@ -111,6 +112,61 @@ func (i *Initializer) Init(ctx context.Context, args []string) error {
 	return nil
 }
 
+func (i *Initializer) createGitHook() {
+    //Create .git pre-push hook to push to skynet
+    /*
+    d1 := []byte("#!/bin/bash");
+    // err := ioutil.WriteFile(".git/hooks/update", d1, 0777)
+    check(err)
+
+    f, err := os.Create(".git/hooks/update");
+    check(err)
+    defer f.Close()
+    */
+
+    b := []byte(`
+        #!/bin/bash
+        # Upload current directory to skynet if branch is dg-pages
+
+        echo "Running update hook"
+
+        remote=$1
+        remote_url="$2"
+
+
+        echo "Remote name is $remote"
+        echo "Remote URL is $remote_url"
+
+        while read local_ref remote_ref
+        do
+            echo "Local branch $local_ref"
+
+            if [ "$local_ref" == "refs/heads/dg-pages" ]
+            then
+                # Push to skynet
+                echo "Publishing your pages to Sia (Skynet)"
+                mkdir _pages
+                rsync ./ _pages --exclude _pages --exclude .git --exclude .github -av
+                skynet upload _pages
+                # rm -rf _pages
+            fi
+        done
+
+        exit 0
+    `)
+
+    // b, err := ioutil.ReadFile("./git-update-hook.txt")
+	fmt.Print(string(b))
+    // if err != nil {
+      //   panic(err)
+    // }
+
+    err := ioutil.WriteFile(".git/hooks/pre-push", b, 0777)
+    if err != nil {
+        panic(err)
+    }
+}
+
 func (i *Initializer) findOrRequestUsername() (string, error) {
 	repoConfig, err := i.repo.Config()
 	if err != nil {
@@ -182,6 +238,7 @@ func (i *Initializer) getAuth(ctx context.Context) (transport.AuthMethod, error)
 		return nil, fmt.Errorf("Error with keyring: %v", err)
 	}
 
+    i.createGitHook()
 	username, err := i.findOrRequestUsername()
 	if err != nil {
 		return nil, err

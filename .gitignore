@@ -19,3 +19,7 @@ decentragit-remote
 vendor/
 
 dist/
+
+# Vim swp files
+.*.swp
+.*.swo
