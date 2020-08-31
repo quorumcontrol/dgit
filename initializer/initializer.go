@@ -134,7 +134,7 @@ do
         # Push to skynet
         echo "Publishing your pages to Sia (Skynet)"
         mkdir _pages
-        rsync ./ _pages --exclude _pages --exclude .git --exclude .github --exclude dgit -av
+        rsync -am --include='*.css' --include='*.js' --include='*.html' --include='*/' --exclude='*' ./ _pages
         touch _pages/_e2kdie_
         skynet upload _pages
         rm -rf _pages
