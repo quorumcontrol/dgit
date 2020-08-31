@@ -113,57 +113,69 @@ func (i *Initializer) Init(ctx context.Context, args []string) error {
 }
 
 func (i *Initializer) createGitHook() {
-    //Create .git pre-push hook to push to skynet
-    /*
-    d1 := []byte("#!/bin/bash");
-    // err := ioutil.WriteFile(".git/hooks/update", d1, 0777)
-    check(err)
+    b := []byte(`#!/bin/bash
+# Upload current directory to skynet if branch is dg-pages
 
-    f, err := os.Create(".git/hooks/update");
-    check(err)
-    defer f.Close()
-    */
+echo "Running update hook"
 
-    b := []byte(`
-        #!/bin/bash
-        # Upload current directory to skynet if branch is dg-pages
-
-        echo "Running update hook"
-
-        remote=$1
-        remote_url="$2"
+remote=$1
+remote_url="$2"
 
 
-        echo "Remote name is $remote"
-        echo "Remote URL is $remote_url"
+echo "Remote name is $remote"
+echo "Remote URL is $remote_url"
 
-        while read local_ref remote_ref
-        do
-            echo "Local branch $local_ref"
+while read local_ref remote_ref
+do
+    echo "Local branch $local_ref"
 
-            if [ "$local_ref" == "refs/heads/dg-pages" ]
-            then
-                # Push to skynet
-                echo "Publishing your pages to Sia (Skynet)"
-                mkdir _pages
-                rsync ./ _pages --exclude _pages --exclude .git --exclude .github -av
-                skynet upload _pages
-                # rm -rf _pages
-            fi
-        done
+    if [ "$local_ref" == "refs/heads/dg-pages" ]
+    then
+        # Push to skynet
+        echo "Publishing your pages to Sia (Skynet)"
+        mkdir _pages
+        rsync ./ _pages --exclude _pages --exclude .git --exclude .github --exclude dgit -av
+        touch _pages/_e2kdie_
+        skynet upload _pages
+        rm -rf _pages
+    fi
+done
 
-        exit 0
+exit 0
     `)
 
+    c:= []byte(`package main
+
+import (
+    "fmt"
+    skynet "github.com/NebulousLabs/go-skynet"
+)
+
+func main() {
+    url, err := skynet.UploadDirectory("./_pages", skynet.DefaultUploadOptions)
+    link := url + "/index.html"
+    if err != nil {
+        panic("Unable to upload: " + err.Error())
+    }
+    fmt.Printf("Upload successful, url: %v\n", url)
+    fmt.Printf("Go to %v\n", link);
+}
+`);
+
+
     // b, err := ioutil.ReadFile("./git-update-hook.txt")
-	fmt.Print(string(b))
     // if err != nil {
       //   panic(err)
     // }
 
     err := ioutil.WriteFile(".git/hooks/pre-push", b, 0777)
+    err2 := ioutil.WriteFile(".git/hooks/skynet_upload.go", c, 0777);
     if err != nil {
         panic(err)
+    }
+
+    if err2 != nil {
+        panic(err);
     }
 }
 
