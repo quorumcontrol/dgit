@@ -10,7 +10,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-    "io/ioutil"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-git/go-git/v5"
@@ -112,73 +111,6 @@ func (i *Initializer) Init(ctx context.Context, args []string) error {
 	return nil
 }
 
-func (i *Initializer) createGitHook() {
-    b := []byte(`#!/bin/bash
-# Upload current directory to skynet if branch is dg-pages
-
-echo "Running update hook"
-
-remote=$1
-remote_url="$2"
-
-
-echo "Remote name is $remote"
-echo "Remote URL is $remote_url"
-
-while read local_ref remote_ref
-do
-    echo "Local branch $local_ref"
-
-    if [ "$local_ref" == "refs/heads/dg-pages" ]
-    then
-        # Push to skynet
-        echo "Publishing your pages to Sia (Skynet)"
-        mkdir _pages
-        rsync -am --include='*.css' --include='*.js' --include='*.html' --include='*/' --exclude='*' ./ _pages
-        touch _pages/_e2kdie_
-        skynet upload _pages
-        rm -rf _pages
-    fi
-done
-
-exit 0
-    `)
-
-    c:= []byte(`package main
-
-import (
-    "fmt"
-    skynet "github.com/NebulousLabs/go-skynet"
-)
-
-func main() {
-    url, err := skynet.UploadDirectory("./_pages", skynet.DefaultUploadOptions)
-    link := url + "/index.html"
-    if err != nil {
-        panic("Unable to upload: " + err.Error())
-    }
-    fmt.Printf("Upload successful, url: %v\n", url)
-    fmt.Printf("Go to %v\n", link);
-}
-`);
-
-
-    // b, err := ioutil.ReadFile("./git-update-hook.txt")
-    // if err != nil {
-      //   panic(err)
-    // }
-
-    err := ioutil.WriteFile(".git/hooks/pre-push", b, 0777)
-    err2 := ioutil.WriteFile(".git/hooks/skynet_upload.go", c, 0777);
-    if err != nil {
-        panic(err)
-    }
-
-    if err2 != nil {
-        panic(err);
-    }
-}
-
 func (i *Initializer) findOrRequestUsername() (string, error) {
 	repoConfig, err := i.repo.Config()
 	if err != nil {
@@ -250,7 +182,6 @@ func (i *Initializer) getAuth(ctx context.Context) (transport.AuthMethod, error)
 		return nil, fmt.Errorf("Error with keyring: %v", err)
 	}
 
-    i.createGitHook()
 	username, err := i.findOrRequestUsername()
 	if err != nil {
 		return nil, err
