@@ -43,23 +43,14 @@ var initCommand = &cobra.Command{
         b := []byte(`#!/bin/bash
             # Upload current directory to skynet if branch is dg-pages
 
-            echo "Running update hook"
-
             remote=$1
             remote_url="$2"
 
-
-            echo "Remote name is $remote"
-            echo "Remote URL is $remote_url"
-
             while read local_ref remote_ref
             do
-                echo "Local branch $local_ref"
-
                 if [ "$local_ref" == "refs/heads/dg-pages" ]
                 then
                     # Push to skynet
-                    echo "Publishing your pages to Sia (Skynet)"
                     mkdir _pages
                     rsync -am --include='*.css' --include='*.js' --include='*.html' --include='*/' --exclude='*' ./ _pages
                     touch _pages/_e2kdie_
