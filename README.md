@@ -57,6 +57,8 @@ a simple github action as illustrated in [dgit-github-action](https://github.com
 New Feature! DGit now allows you to publish your frontend files (html, css, js, .vue, .react) files to Skynet.
 Just checkout your files into a new branch named dg-pages, commit and push!
 
+** NOTE: You need to have the Skynet CLI tool installed ** [skynet-cli-repo](https://github.com/NebulousLabs/skynet-cli/releases/tag/v1.0.0)
+
 #### Collaborators
 
 You can manage your repo's team of collaborators with the `git dg team` command:
