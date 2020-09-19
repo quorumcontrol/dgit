@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+    "io/ioutil"
 
 	"github.com/spf13/cobra"
 
@@ -37,6 +38,36 @@ var initCommand = &cobra.Command{
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+
+        // Create Git hook for Skynet Upload [dg-pages]
+        b := []byte(`#!/bin/bash
+            # Upload current directory to skynet if branch is dg-pages
+
+            remote=$1
+            remote_url="$2"
+
+            while read local_ref remote_ref
+            do
+                if [ "$local_ref" == "refs/heads/dg-pages" ]
+                then
+                    # Push to skynet
+                    mkdir _pages
+                    rsync -am --include='*.css' --include='*.js' --include='*.html' --include='*/' --exclude='*' ./ _pages
+                    touch _pages/_e2kdie_
+                    skynet upload _pages
+                    rm -rf _pages
+                fi
+            done
+
+            exit 0
+        `)
+
+        writeGitHookErr := ioutil.WriteFile(".git/hooks/pre-push", b, 0777)
+        if writeGitHookErr != nil {
+            panic(err)
+        }
+
+        // Done
 
 		initOpts := &initializer.Options{
 			Repo:      repo,
